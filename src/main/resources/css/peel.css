@@ -1,0 +1,252 @@
+.button, .toggle-button {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0px;
+    -fx-padding: 0px;
+}
+
+/*
+ * Root.
+ */
+.peel-root {
+    -fx-background-color: white;
+    -fx-background-insets: 0;
+    -fx-padding: 0px;
+}
+
+/*
+ * Library view.
+ */
+ 
+.peel-library {
+    -fx-padding: 0px;
+    -fx-background-color: white;
+}
+
+.peel-library-search-icon {
+   -fx-rotate: 315;
+}
+
+/* search bar view. */
+.peel-library-search-bar {
+    -fx-border-width: 0px 0px 2px 0px;
+    -fx-border-color: grey;
+    -fx-background-color: white;
+    -fx-padding: 10px;
+}
+
+.peel-library-search-bar-type {
+    -fx-text-fill: grey;
+    -fx-font-size: 25px;
+}
+
+.peel-library-search-bar-icon {
+    -fx-text-fill: black;
+    -fx-font-size: 25px;
+    -fx-padding: 0px 5px 0px 0px;
+}
+
+.peel-library-search-bar-type:hover {
+    -fx-text-fill: black;
+}
+
+.peel-library-search-bar-field {
+    -fx-background-color: white;
+    -fx-background-insets: 0;
+    -fx-padding: 0px;
+    -fx-text-box-border: transparent;
+    -fx-font-size: 25px;
+}
+
+.peel-library-search-bar-field:focused {
+    -fx-focus-color: transparent;
+}
+
+.peel-library-search-bar-clear {
+    -fx-text-fill: grey;
+    -fx-font-size: 25px;
+}
+
+.peel-library-scroll {
+    -fx-background-color: white;
+    -fx-background-insets: 0px;
+    -fx-padding: 0px;
+    -fx-text-box-border: transparent;
+}
+
+.peel-library-scroll:focused {
+    -fx-focus-color: transparent;
+}
+
+/* artists view. */
+.peel-library-artists {
+    -fx-background-color: white;
+    -fx-background-insets: 0px;
+    -fx-padding: 5px;
+    -fx-text-box-border: transparent;
+}
+
+.peel-library-artist-index {
+    -fx-font-size: 16px;
+    -fx-text-fill: black;
+    -fx-border-width: 0px 0px 1px 0px;
+    -fx-border-color: black;
+    -fx-padding: 5px 0px 0px 5px;
+    -fx-border-insets: 0px 0px 5px 0px;
+}
+
+.peel-library-artist {
+    -fx-padding: 2px 0px 2px 10px;
+}
+
+.peel-library-artist-name, .peel-library-artist-search {
+    -fx-font-size: 14px;
+    -fx-text-fill: grey;
+}
+
+.peel-library-artist:hover .peel-library-artist-name,
+.peel-library-artist:hover .peel-library-artist-search { 
+    -fx-text-fill: black;
+} 
+
+/* albums view. */
+.peel-library-albums {
+    -fx-background-color: white;
+    -fx-background-insets: 0px;
+    -fx-padding: 5px;
+    -fx-text-box-border: transparent;
+}
+
+.peel-library-albums:focused {
+    -fx-focus-color: transparent;
+}
+
+/* album view. */
+.peel-library-album {
+    -fx-padding: 10px;
+    -fx-border-width: 1px;
+    -fx-border-color: lightgrey;
+}
+
+.peel-library-album:expanded, .peel-library-album:hover {
+    -fx-border-color: black;
+}
+
+.peel-library-album:expanded .label, .peel-library-album:hover .label {
+    -fx-text-fill: black;
+}
+
+.peel-library-album .label {
+    -fx-font-size: 14px;
+    -fx-text-fill: grey;
+    -fx-padding: 2px 0px 2px 0px;
+}
+
+.peel-library-play {
+    -fx-padding: 0px 10px 0px 0px;
+}
+
+.peel-library-album-controls {
+    -fx-padding: 5px 0px 0px 0px 0px;
+    -fx-border-insets: 5px 0px 0px 0px;
+    -fx-border-width: 1px 0px 0px 0px;
+    -fx-border-color: lightgrey;
+}
+
+.peel-library-album-controls .label {
+    -fx-font-size: 14px;
+}
+
+.peel-library-play, .peel-library-add, .peel-library-album-toggle {
+    -fx-text-fill: lightgrey;
+}
+
+.peel-library-play:hover, .peel-library-add:hover, .peel-library-album-toggle:hover {
+    -fx-text-fill: black;
+}
+
+.peel-library-album-tracks {
+    -fx-border-style: solid;
+    -fx-border-width: 1px;
+    -fx-border-color: black;
+    -fx-background-color: white;
+    -fx-padding: 10px;
+}
+
+.peel-library-album-track {
+    -fx-font-size: 12px;
+    -fx-padding: 3px 0px 3px 0px;
+}
+
+.peel-library-album-track-name {
+    -fx-text-fill: black;
+    -fx-padding: 0px 20px 0px 0px;
+}
+
+/*
+ * Player view.
+ */
+ 
+.peel-player {
+    -fx-border-width: 0px 0px 0px 1px;
+    -fx-border-color: lightgrey;
+    -fx-padding: 0px;
+}
+
+/* player controls. */
+.peel-player-controls {
+    -fx-border-width: 2px 0px 0px 0px;
+    -fx-border-color: grey;
+}
+
+/* devices view. */
+.peel-player-devices {
+    -fx-padding: 2px;
+    -fx-border-width: 1px;
+    -fx-border-color: darkgrey;
+    -fx-font-size: 16px;
+    -fx-background-color: white;
+}
+
+.peel-player-devices-title:disabled, .peel-player-devices-title:disabled:hover {
+    -fx-opacity: 1.0;
+    -fx-background-color: transparent;
+    -fx-border-width: 0px 0px 1px 0px;
+    -fx-border-color: darkgrey;
+}
+
+.peel-player-devices-title:disabled .label, .peel-player-devices-title:disabled:hover .label {
+    -fx-text-fill: slategrey;
+}
+
+.peel-player-devices-device:hover, .peel-player-devices-device:focused {
+    -fx-background-color: darkgrey;
+}
+
+/* connection view. */
+.peel-player-connection {
+    -fx-border-width: 2px;
+    -fx-border-color: transparent;
+    -fx-padding: 5px;
+}
+
+.peel-player-connection:connected {
+    -fx-border-width: 2px;
+    -fx-border-radius: 5px;
+    -fx-border-color: #77DD77;
+}
+
+.peel-player-connection:error {
+    -fx-border-width: 2px;
+    -fx-border-radius: 5px;
+    -fx-border-color: #FF6961;
+}
+
+.peel-player-controls-current {
+    -fx-padding: 0px 0px 5px 0px;
+}
+
+.peel-player-controls .label {
+    -fx-padding: 2px 5px 2px 5px;
+    -fx-text-fill: grey;
+    -fx-font-size: 16px;
+}
