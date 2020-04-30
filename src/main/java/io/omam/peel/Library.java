@@ -140,6 +140,7 @@ final class Library {
             player = aPlayer;
 
             getStyleClass().add("peel-library-album");
+            setMinWidth(250);
 
             final Label artistName = new Label(album.artist);
             artistName.setMaxWidth(250);
@@ -241,20 +242,27 @@ final class Library {
 
     private static final class ArtistsView extends VBox {
 
+        private VBox pending;
+
         private final Map<String, VBox> artists;
 
         ArtistsView() {
             getStyleClass().add("peel-library-artists");
             artists = new HashMap<>();
-        }
-
-        final void addAll() {
-            getChildren().addAll(artists.values());
+            pending = null;
         }
 
         final void clear() {
             getChildren().clear();
             artists.clear();
+            pending = null;
+        }
+
+        final void done() {
+            if (pending != null) {
+                getChildren().add(pending);
+            }
+            pending = null;
         }
 
         final void withArtist(final Artist artist, final TextField searchField) {
@@ -266,6 +274,10 @@ final class Library {
                 label.setMaxWidth(Double.MAX_VALUE);
                 vbox.getChildren().add(label);
                 artists.put(artist.firstChar, vbox);
+                if (pending != null) {
+                    getChildren().add(pending);
+                }
+                pending = vbox;
             } else {
                 vbox = artists.get(artist.firstChar);
             }
@@ -274,8 +286,6 @@ final class Library {
     }
 
     private static final class ArtistView extends HBox {
-
-        // private static final String SEARCH = "search-black-48dp-14";
 
         ArtistView(final Artist artist, final TextField searchField) {
             getStyleClass().add("peel-library-artist");
@@ -448,7 +458,7 @@ final class Library {
                 for (final Artist artist : artistList) {
                     artists.withArtist(artist, searchField);
                 }
-                artists.addAll();
+                artists.done();
             });
         }
 

@@ -222,9 +222,12 @@ final class Tracks {
 
     private static Artist artist(final Path artist) {
         final String name = fileName(artist);
-        final int i = name.toLowerCase().indexOf(IGNORE);
-        final char first = i == -1 || i + IGNORE.length() >= name.length() ? name.charAt(0)
-                : name.charAt(i + IGNORE.length());
+        final char first;
+        if (name.toLowerCase().startsWith(IGNORE)) {
+            first = name.charAt(IGNORE.length());
+        } else {
+            first = name.charAt(0);
+        }
         final String firstChar = Character.isLetter(first) ? Character.toString(first) : "#";
         return new Artist(name, firstChar);
     }

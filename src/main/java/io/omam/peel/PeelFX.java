@@ -45,7 +45,7 @@ import javafx.stage.Stage;
 @SuppressWarnings("javadoc")
 public final class PeelFX extends Application {
 
-    private static final Set<String> SUPPORTED_FORMATS = Set.of("MP3", "AAC", "WAV", "FLAC", "M4A", "M4B", "AIF");
+    private static final Set<String> SUPPORTED_FORMATS = Set.of("MP3", "AAC", "WAV", "FLAC", "M4A", "M4B");
 
     private Player.Controller player;
 
@@ -79,7 +79,7 @@ public final class PeelFX extends Application {
         root.getColumnConstraints().addAll(col1, col2);
 
         root.getStyleClass().add("peel-root");
-        final Scene scene = new Scene(root, 1024, 768);
+        final Scene scene = new Scene(root, 1200, 800);
         scene.getStylesheets().add("/css/peel.css");
         primaryStage.setScene(scene);
 
