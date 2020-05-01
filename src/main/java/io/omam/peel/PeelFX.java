@@ -73,9 +73,9 @@ public final class PeelFX extends Application {
         root.setMaxHeight(Double.POSITIVE_INFINITY);
 
         final ColumnConstraints col1 = new ColumnConstraints();
-        col1.setPercentWidth(50);
+        col1.setPercentWidth(40);
         final ColumnConstraints col2 = new ColumnConstraints();
-        col2.setPercentWidth(50);
+        col2.setPercentWidth(60);
         root.getColumnConstraints().addAll(col1, col2);
 
         root.getStyleClass().add("peel-root");

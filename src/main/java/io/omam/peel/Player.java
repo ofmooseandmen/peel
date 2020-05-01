@@ -44,7 +44,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 import io.omam.peel.Tracks.Track;
 import io.omam.wire.CastDeviceBrowser;
@@ -71,10 +70,12 @@ import javafx.scene.control.CheckMenuItem;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
@@ -538,28 +539,39 @@ final class Player {
 
     private static final class CurrentTrackView extends VBox {
 
+        private final Label idle;
+
         private final Label trackName;
 
         private final Label artistAlbum;
 
         CurrentTrackView() {
-            getStyleClass().add("peel-player-controls-current");
+            getStyleClass().add("peel-player-current");
+            idle = new Label("idle");
+            idle.getStyleClass().add("peel-player-current-idle");
+            idle.setAlignment(Pos.CENTER);
+
             trackName = new Label("no track playing");
+            trackName.getStyleClass().add("peel-player-current-track-name");
             trackName.setAlignment(Pos.CENTER);
+
             artistAlbum = new Label();
+            artistAlbum.getStyleClass().add("peel-player-current-artist-album");
             artistAlbum.setAlignment(Pos.CENTER);
-            getChildren().add(trackName);
-            getChildren().add(artistAlbum);
+
+            getChildren().add(idle);
         }
 
         final void reset() {
-            trackName.setText("no track playing");
-            artistAlbum.setText(null);
+            getChildren().removeAll(trackName, artistAlbum);
+            getChildren().add(idle);
         }
 
         final void set(final Track track) {
+            getChildren().remove(idle);
             trackName.setText(track.name);
             artistAlbum.setText(track.album + " by " + track.artist);
+            getChildren().addAll(trackName, artistAlbum);
         }
 
     }
@@ -608,9 +620,9 @@ final class Player {
 
         private final ActionHandler ah;
 
-        private final BorderPane pane;
+        private final VBox pane;
 
-        private final VBox queue;
+        private final GridPane queue;
 
         private final ContextMenu devices;
 
@@ -622,27 +634,18 @@ final class Player {
 
         View(final ActionHandler anActionHandler) {
             ah = anActionHandler;
-            pane = new BorderPane();
+            pane = new VBox();
             pane.getStyleClass().add("peel-player");
-
-            queue = new VBox();
-            queue.getStyleClass().add("peel-player-queue");
-
-            pane.setCenter(queue);
-
-            final VBox controls = new VBox();
-            controls.setAlignment(Pos.CENTER);
-            BorderPane.setAlignment(controls, Pos.CENTER);
-            controls.getStyleClass().add("peel-player-controls");
 
             currentTrack = new CurrentTrackView();
             currentTrack.setAlignment(Pos.CENTER);
             BorderPane.setAlignment(currentTrack, Pos.CENTER);
-            controls.getChildren().add(currentTrack);
+            pane.getChildren().add(currentTrack);
 
-            final HBox buttons = new HBox();
-            buttons.setAlignment(Pos.CENTER);
-            buttons.getStyleClass().add("peel-player-controls-buttons");
+            final HBox controls = new HBox();
+            controls.setAlignment(Pos.CENTER);
+            BorderPane.setAlignment(controls, Pos.CENTER);
+            controls.getStyleClass().add("peel-player-controls");
 
             connection = new Button(null, Jfx.image(CAST));
             connection.getStyleClass().add("peel-player-connection");
@@ -662,33 +665,42 @@ final class Player {
                 }
             });
 
-            buttons.getChildren().add(connection);
+            controls.getChildren().add(connection);
 
             final Button prev = new Button(null, Jfx.image(PREV));
-            buttons.getChildren().add(prev);
+            controls.getChildren().add(prev);
             prev.setDisable(true);
             prev.setOnAction(e -> ah.prev());
 
             playPause = new Button(null, Jfx.image(PLAY));
-            buttons.getChildren().add(playPause);
+            controls.getChildren().add(playPause);
             playPause.setDisable(true);
             playPause.setOnAction(e -> ah.togglePlayback());
 
             final Button next = new Button(null, Jfx.image(NEXT));
-            buttons.getChildren().add(next);
+            controls.getChildren().add(next);
             next.setDisable(true);
             next.setOnAction(e -> ah.next());
 
             final Button stop = new Button(null, Jfx.image(STOP));
-            buttons.getChildren().add(stop);
+            controls.getChildren().add(stop);
             stop.setOnAction(e -> ah.stopPlayback());
 
             final Button volume = new Button(null, Jfx.image(VOLUME));
-            buttons.getChildren().add(volume);
+            controls.getChildren().add(volume);
 
-            controls.getChildren().add(buttons);
+            pane.getChildren().add(controls);
 
-            pane.setBottom(controls);
+            queue = new GridPane();
+            queue.getStyleClass().add("peel-player-queue");
+
+            final ScrollPane scrollPane = new ScrollPane();
+            scrollPane.setFitToHeight(true);
+            scrollPane.setFitToWidth(true);
+            scrollPane.getStyleClass().add("peel-player-scroll");
+            scrollPane.setContent(queue);
+
+            pane.getChildren().add(scrollPane);
 
         }
 
@@ -770,9 +782,22 @@ final class Player {
             Platform.runLater(() -> {
                 playPause.setDisable(false);
                 queue.getChildren().clear();
-                queue
-                    .getChildren()
-                    .addAll(tracks.stream().map(t -> new Label(t.name)).collect(Collectors.toList()));
+                int rowIndex = 0;
+                for (final Track track : tracks) {
+                    final Label trackName = new Label(track.name);
+                    trackName.getStyleClass().add("peel-player-queue-track-name");
+                    queue.add(trackName, 0, rowIndex);
+
+                    final Label albumName = new Label(track.album);
+                    trackName.getStyleClass().add("peel-player-queue-track-album");
+                    queue.add(albumName, 1, rowIndex);
+
+                    final Label artistName = new Label(track.artist);
+                    trackName.getStyleClass().add("peel-player-queue-track-artist");
+                    queue.add(artistName, 2, rowIndex);
+
+                    rowIndex++;
+                }
             });
         }
 

@@ -62,7 +62,6 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.TilePane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Popup;
 import javafx.util.Duration;
@@ -140,17 +139,13 @@ final class Library {
             player = aPlayer;
 
             getStyleClass().add("peel-library-album");
-            setMinWidth(250);
 
+            // FIXME artistName & albumName don't wrap even with setWrapText...
             final Label artistName = new Label(album.artist);
-            artistName.setMaxWidth(250);
-            artistName.setWrapText(true);
             artistName.getStyleClass().add("peel-library-album-artist");
             getChildren().add(artistName);
 
             final Label albumName = new Label(album.name);
-            albumName.setMaxWidth(250);
-            albumName.setWrapText(true);
             albumName.getStyleClass().add("peel-library-album-name");
             getChildren().add(albumName);
 
@@ -193,6 +188,7 @@ final class Library {
                 if (nv) {
                     pseudoClassStateChanged(EXPANDED, true);
                     toggle.setText(CROSS);
+                    // TODO: change position?
                     final Point2D point = localToScreen(0, 0);
                     popup.show(this, point.getX() + getWidth() + 5, point.getY());
                 } else {
@@ -297,11 +293,13 @@ final class Library {
 
             Jfx.addSpacing(this);
 
+            // FIXME: show to the left on mouse over
             final Label search = new Label(SEARCH);
             search.getStyleClass().addAll("peel-library-artist-search", "peel-library-search-icon");
 
             getChildren().add(search);
 
+            // FIXME: exact match
             addEventHandler(MouseEvent.MOUSE_RELEASED, e -> searchField.setText(artist.name));
 
         }
@@ -350,7 +348,7 @@ final class Library {
         ALBUM;
 
         final String display() {
-            return name().toLowerCase() + ":";
+            return name().toLowerCase() + ": ";
         }
 
         final SearchType toggle() {
@@ -375,7 +373,7 @@ final class Library {
 
         private final Button searchClear;
 
-        private final TilePane albums;
+        private final VBox albums;
 
         private final ArtistsView artists;
 
@@ -387,6 +385,7 @@ final class Library {
             player = aPlayer;
 
             pane = new BorderPane();
+            pane.setMaxHeight(Double.MAX_VALUE);
             pane.getStyleClass().add("peel-library");
 
             search = new HBox();
@@ -419,9 +418,7 @@ final class Library {
 
             pane.setTop(search);
 
-            albums = new TilePane();
-            albums.setHgap(10);
-            albums.setVgap(10);
+            albums = new VBox();
             albums.getStyleClass().add("peel-library-albums");
 
             artists = new ArtistsView();
