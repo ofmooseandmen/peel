@@ -44,6 +44,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import io.omam.peel.Tracks.Track;
 import io.omam.wire.CastDeviceBrowser;
@@ -359,6 +360,8 @@ final class Player {
 
         private MediaInfo currentMedia;
 
+        private boolean loadTimeout;
+
         ConnectedDeviceController(final CastDeviceController aCastDeviceController,
                 final MediaController aMediaController, final UrlResolver anUrlResolver) {
             deviceController = aCastDeviceController;
@@ -389,18 +392,31 @@ final class Player {
 
         @Override
         public final void mediaStatusUpdated(final MediaStatus newStatus) {
+            // FIXME concurrent with load/addQueue + really messy
             if (newStatus.media().isPresent()) {
                 currentMedia = newStatus.media().get();
             }
-            final PlayerState newPlayerState = newStatus.playerState();
-            if (newPlayerState == PlayerState.PAUSED) {
+            playerState = newStatus.playerState();
+            if (loadTimeout && playerState != PlayerState.IDLE) {
+                loadTimeout = false;
+                final List<Track> tracks = queuedTracks();
+                listeners.forEach(l -> l.queueUpdated(tracks));
+            }
+            if (playerState == PlayerState.PAUSED) {
                 listeners.forEach(ConnectedDeviceListener::playbackPaused);
-            } else if (newPlayerState == PlayerState.PLAYING) {
+            } else if (playerState == PlayerState.PLAYING) {
                 final Optional<Track> currentTrack = Optional.ofNullable(currentMedia).flatMap(this::track);
-                currentTrack
-                    .ifPresentOrElse(t -> listeners.forEach(l -> l.newTrackPlaying(t)),
-                            () -> listeners.forEach(l -> l.playbackError("No current track")));
-            } else if (newPlayerState == PlayerState.IDLE && newStatus.idleReason().isPresent()) {
+                if (currentTrack.isPresent()) {
+                    final Track t = currentTrack.get();
+                    listeners.forEach(l -> l.newTrackPlaying(t));
+                } else {
+                    if (currentMedia != null) {
+                        System.err.println(currentMedia.contentId());
+                    }
+                    System.err.println(queue.stream().map(t -> t.contentId).collect(Collectors.toList()));
+                    listeners.forEach(l -> l.playbackError("No current track"));
+                }
+            } else if (playerState == PlayerState.IDLE && newStatus.idleReason().isPresent()) {
                 final IdleReason idle = newStatus.idleReason().get();
                 if (idle == IdleReason.CANCELLED) {
                     listeners.forEach(ConnectedDeviceListener::playbackStopped);
@@ -408,7 +424,6 @@ final class Player {
                     listeners.forEach(ConnectedDeviceListener::playbackFinished);
                 }
             }
-            playerState = newPlayerState;
         }
 
         @Override
@@ -422,10 +437,16 @@ final class Player {
 
         final List<Track> addToQueue(final List<Track> tracks)
                 throws IOException, TimeoutException, MediaRequestException {
+            loadTimeout = false;
             if (queue.isEmpty()) {
                 return play(tracks);
             }
-            mediaController.addToQueue(storeTracks(tracks));
+            try {
+                mediaController.addToQueue(storeTracks(tracks));
+            } catch (final TimeoutException e) {
+                loadTimeout = true;
+                throw e;
+            }
             return queuedTracks();
         }
 
@@ -438,6 +459,9 @@ final class Player {
         }
 
         final void disconnect() {
+            queue.clear();
+            currentMedia = null;
+            loadTimeout = false;
             try {
                 deviceController.stopApp(mediaController);
             } catch (final IOException | TimeoutException e) {
@@ -449,7 +473,17 @@ final class Player {
         final List<Track> play(final List<Track> tracks)
                 throws IOException, TimeoutException, MediaRequestException {
             queue.clear();
-            mediaController.load(storeTracks(tracks));
+            currentMedia = null;
+            loadTimeout = false;
+            if (playerState != PlayerState.IDLE) {
+                stopPlayback();
+            }
+            try {
+                mediaController.load(storeTracks(tracks));
+            } catch (final TimeoutException e) {
+                loadTimeout = true;
+                throw e;
+            }
             return queuedTracks();
         }
 
@@ -459,9 +493,10 @@ final class Player {
 
         final void stopPlayback() throws IOException, TimeoutException, MediaRequestException {
             /* no media status unsolicited message. */
-            queue.clear();
             final MediaStatus status = mediaController.stop();
+            queue.clear();
             currentMedia = null;
+            loadTimeout = false;
             playerState = status.playerState();
         }
 

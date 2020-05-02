@@ -91,15 +91,7 @@ final class Library {
         }
 
         @Override
-        public final void searchArtists() {
-            cancelPendingSearch();
-            final SearchListener<List<Artist>> l = new SearchListenerImpl<>(view, true, view::addArtists);
-            final Runnable task = Tracks.searchArtists(libraryRoot, l);
-            pendingSearch = executor.submit(task);
-        }
-
-        @Override
-        public final void searchBy(final SearchType searchType, final String text) {
+        public final void search(final SearchType searchType, final String text) {
             cancelPendingSearch();
             final String lc = text.toLowerCase();
             final SearchListener<Album> l = new SearchListenerImpl<>(view, false, view::addAlbum);
@@ -109,6 +101,14 @@ final class Library {
             } else {
                 task = Tracks.searchByAlbum(libraryRoot, supportedFormats, a -> a.toLowerCase().contains(lc), l);
             }
+            pendingSearch = executor.submit(task);
+        }
+
+        @Override
+        public final void searchArtists() {
+            cancelPendingSearch();
+            final SearchListener<List<Artist>> l = new SearchListenerImpl<>(view, true, view::addArtists);
+            final Runnable task = Tracks.searchArtists(libraryRoot, l);
             pendingSearch = executor.submit(task);
         }
 
@@ -307,9 +307,9 @@ final class Library {
 
     private static interface SearchHandler {
 
-        void searchArtists();
+        void search(final SearchType searchType, final String text);
 
-        void searchBy(final SearchType searchType, final String text);
+        void searchArtists();
     }
 
     private static final class SearchListenerImpl<T> implements SearchListener<T> {
@@ -482,7 +482,7 @@ final class Library {
                 if (!search.getChildren().contains(searchClear)) {
                     search.getChildren().add(searchClear);
                 }
-                searchHandler.searchBy((SearchType) searchType.getUserData(), text);
+                searchHandler.search((SearchType) searchType.getUserData(), text);
             }
         }
 
