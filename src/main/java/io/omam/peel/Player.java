@@ -33,7 +33,6 @@ package io.omam.peel;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,14 +43,13 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 import io.omam.peel.Tracks.Track;
-import io.omam.wire.CastDeviceBrowser;
-import io.omam.wire.CastDeviceBrowserListener;
-import io.omam.wire.CastDeviceController;
-import io.omam.wire.CastDeviceControllerListener;
-import io.omam.wire.CastDeviceStatus;
+import io.omam.wire.device.CastDeviceController;
+import io.omam.wire.device.CastDeviceControllerListener;
+import io.omam.wire.device.CastDeviceStatus;
+import io.omam.wire.discovery.CastDeviceBrowser;
+import io.omam.wire.discovery.CastDeviceBrowserListener;
 import io.omam.wire.media.Error;
 import io.omam.wire.media.MediaController;
 import io.omam.wire.media.MediaInfo;
@@ -62,6 +60,7 @@ import io.omam.wire.media.MediaStatus.PlayerState;
 import io.omam.wire.media.MediaStatusListener;
 import io.omam.wire.media.QueueItem;
 import javafx.application.Platform;
+import javafx.collections.ObservableList;
 import javafx.css.PseudoClass;
 import javafx.geometry.Pos;
 import javafx.geometry.Side;
@@ -117,7 +116,7 @@ final class Player {
         }
 
         @Override
-        public final void down(final CastDeviceController controller) {
+        public final void deviceRemoved(final CastDeviceController controller) {
             executor.execute(() -> {
                 final String deviceId = controller.deviceId();
                 controllers.remove(deviceId);
@@ -131,6 +130,15 @@ final class Player {
         }
 
         @Override
+        public final void deviceDiscovered(final CastDeviceController controller) {
+            executor.execute(() -> {
+                System.err.println(controller.deviceAddress());
+                controllers.put(controller.deviceId(), controller);
+                view.addDevice(controller.deviceId(), controller.deviceName());
+            });
+        }
+
+        @Override
         public final void newTrackPlaying(final Track track) {
             executor.execute(() -> view.setCurrentTrack(track));
         }
@@ -138,7 +146,6 @@ final class Player {
         @Override
         public final void next() {
             // TODO Auto-generated method stub
-
         }
 
         @Override
@@ -176,7 +183,6 @@ final class Player {
         @Override
         public final void prev() {
             // TODO Auto-generated method stub
-
         }
 
         @Override
@@ -250,14 +256,6 @@ final class Player {
 
         }
 
-        @Override
-        public final void up(final CastDeviceController controller) {
-            executor.execute(() -> {
-                controllers.put(controller.deviceId(), controller);
-                view.addDevice(controller.deviceId(), controller.deviceName());
-            });
-        }
-
         final void shutdown() {
             executor.shutdownNow();
             if (connected != null) {
@@ -270,7 +268,7 @@ final class Player {
         }
 
         final void start() throws IOException {
-            browser = CastDeviceController.browse(this);
+            browser = CastDeviceBrowser.start(this);
         }
 
         final Node widget() {
@@ -342,7 +340,8 @@ final class Player {
 
     }
 
-    private static class ConnectedDeviceController implements MediaStatusListener, CastDeviceControllerListener {
+    private static final class ConnectedDeviceController
+            implements MediaStatusListener, CastDeviceControllerListener {
 
         private static final Logger LOGGER = Logger.getLogger(ConnectedDeviceController.class.getName());
 
@@ -352,15 +351,9 @@ final class Player {
 
         private final UrlResolver urlResolver;
 
-        private final List<QueueTrack> queue;
-
         private final ConcurrentLinkedQueue<ConnectedDeviceListener> listeners;
 
-        private PlayerState playerState;
-
-        private MediaInfo currentMedia;
-
-        private boolean loadTimeout;
+        private final MediaSession mediaSession;
 
         ConnectedDeviceController(final CastDeviceController aCastDeviceController,
                 final MediaController aMediaController, final UrlResolver anUrlResolver) {
@@ -370,9 +363,7 @@ final class Player {
             mediaController.addListener(this);
             urlResolver = anUrlResolver;
             listeners = new ConcurrentLinkedQueue<>();
-            queue = new ArrayList<>();
-            playerState = PlayerState.IDLE;
-            currentMedia = null;
+            mediaSession = new MediaSession();
         }
 
         @Override
@@ -392,28 +383,25 @@ final class Player {
 
         @Override
         public final void mediaStatusUpdated(final MediaStatus newStatus) {
-            // FIXME concurrent with load/addQueue + really messy
-            if (newStatus.media().isPresent()) {
-                currentMedia = newStatus.media().get();
+            mediaSession.update(newStatus);
+            if (mediaSession.hasNewTracks() && mediaSession.playerState() != PlayerState.IDLE) {
+                try {
+                    final List<Track> tracks = queuedTracks();
+                    listeners.forEach(l -> l.queueUpdated(tracks));
+                } catch (final IOException | TimeoutException | MediaRequestException e) {
+                    listeners.forEach(l -> l.playbackError("Could not get track queue"));
+                    return;
+                }
             }
-            playerState = newStatus.playerState();
-            if (loadTimeout && playerState != PlayerState.IDLE) {
-                loadTimeout = false;
-                final List<Track> tracks = queuedTracks();
-                listeners.forEach(l -> l.queueUpdated(tracks));
-            }
+            final PlayerState playerState = mediaSession.playerState();
             if (playerState == PlayerState.PAUSED) {
                 listeners.forEach(ConnectedDeviceListener::playbackPaused);
             } else if (playerState == PlayerState.PLAYING) {
-                final Optional<Track> currentTrack = Optional.ofNullable(currentMedia).flatMap(this::track);
+                final Optional<Track> currentTrack = mediaSession.currentTrack();
                 if (currentTrack.isPresent()) {
                     final Track t = currentTrack.get();
                     listeners.forEach(l -> l.newTrackPlaying(t));
                 } else {
-                    if (currentMedia != null) {
-                        System.err.println(currentMedia.contentId());
-                    }
-                    System.err.println(queue.stream().map(t -> t.contentId).collect(Collectors.toList()));
                     listeners.forEach(l -> l.playbackError("No current track"));
                 }
             } else if (playerState == PlayerState.IDLE && newStatus.idleReason().isPresent()) {
@@ -437,16 +425,10 @@ final class Player {
 
         final List<Track> addToQueue(final List<Track> tracks)
                 throws IOException, TimeoutException, MediaRequestException {
-            loadTimeout = false;
-            if (queue.isEmpty()) {
+            if (mediaSession.isQueueEmpty()) {
                 return play(tracks);
             }
-            try {
-                mediaController.addToQueue(storeTracks(tracks));
-            } catch (final TimeoutException e) {
-                loadTimeout = true;
-                throw e;
-            }
+            mediaController.addToQueue(storeTracks(tracks));
             return queuedTracks();
         }
 
@@ -459,9 +441,7 @@ final class Player {
         }
 
         final void disconnect() {
-            queue.clear();
-            currentMedia = null;
-            loadTimeout = false;
+            mediaSession.reset();
             try {
                 deviceController.stopApp(mediaController);
             } catch (final IOException | TimeoutException e) {
@@ -472,18 +452,10 @@ final class Player {
 
         final List<Track> play(final List<Track> tracks)
                 throws IOException, TimeoutException, MediaRequestException {
-            queue.clear();
-            currentMedia = null;
-            loadTimeout = false;
-            if (playerState != PlayerState.IDLE) {
+            if (mediaSession.playerState() != PlayerState.IDLE) {
                 stopPlayback();
             }
-            try {
-                mediaController.load(storeTracks(tracks));
-            } catch (final TimeoutException e) {
-                loadTimeout = true;
-                throw e;
-            }
+            mediaController.load(storeTracks(tracks));
             return queuedTracks();
         }
 
@@ -493,33 +465,26 @@ final class Player {
 
         final void stopPlayback() throws IOException, TimeoutException, MediaRequestException {
             /* no media status unsolicited message. */
-            final MediaStatus status = mediaController.stop();
-            queue.clear();
-            currentMedia = null;
-            loadTimeout = false;
-            playerState = status.playerState();
+            mediaController.stop();
+            mediaSession.reset();
         }
 
         final PlayerState togglePlayback() throws IOException, TimeoutException, MediaRequestException {
             /* no media status unsolicited message. */
             final MediaStatus status;
-            if (playerState == PlayerState.PLAYING) {
+            if (mediaSession.playerState() == PlayerState.PLAYING) {
                 status = mediaController.pause();
             } else {
                 status = mediaController.play();
             }
-            playerState = status.playerState();
+            final PlayerState playerState = status.playerState();
+            mediaSession.setPlayerState(playerState);
             return playerState;
         }
 
-        private List<Track> queuedTracks() {
-            try {
-                final List<QueueItem> items = mediaController.getQueueItems();
-                return tracks(items);
-            } catch (final Exception e) {
-                LOGGER.log(Level.WARNING, e, () -> "Could not get queue items");
-                return Collections.emptyList();
-            }
+        private List<Track> queuedTracks() throws IOException, TimeoutException, MediaRequestException {
+            final List<QueueItem> items = mediaController.getQueueItems();
+            return mediaSession.tracks(items);
         }
 
         private List<MediaInfo> storeTracks(final List<Track> tracks) {
@@ -529,25 +494,12 @@ final class Player {
                     final String contentId = urlResolver.resolveUrl(track.path);
                     final MediaInfo media = MediaInfo.fromDataStream(contentId);
                     l.add(media);
-                    queue.add(new QueueTrack(contentId, track));
+                    mediaSession.add(contentId, track);
                 } catch (final IOException e) {
                     LOGGER.log(Level.WARNING, e, () -> "Ignoring track " + track.name);
                 }
             }
             return l;
-        }
-
-        private Optional<Track> track(final MediaInfo media) {
-            final String contentId = media.contentId();
-            return queue.stream().filter(qt -> qt.contentId.equals(contentId)).map(qt -> qt.track).findFirst();
-        }
-
-        private List<Track> tracks(final List<QueueItem> queueItems) {
-            final List<Track> tracks = new ArrayList<>();
-            for (final QueueItem qi : queueItems) {
-                track(qi.media()).ifPresent(tracks::add);
-            }
-            return tracks;
         }
 
     }
@@ -598,15 +550,19 @@ final class Player {
         }
 
         final void reset() {
-            getChildren().removeAll(trackName, artistAlbum);
-            getChildren().add(idle);
+            final ObservableList<Node> childrens = getChildren();
+            childrens.clear();
+            childrens.add(idle);
         }
 
         final void set(final Track track) {
-            getChildren().remove(idle);
             trackName.setText(track.name);
             artistAlbum.setText(track.album + " by " + track.artist);
-            getChildren().addAll(trackName, artistAlbum);
+            final ObservableList<Node> childrens = getChildren();
+            if (childrens.contains(idle)) {
+                childrens.remove(idle);
+                childrens.addAll(trackName, artistAlbum);
+            }
         }
 
     }
@@ -618,23 +574,95 @@ final class Player {
 
     }
 
+    private static final class MediaSession {
+
+        private static class QueueTrack {
+
+            final String contentId;
+
+            final Track track;
+
+            QueueTrack(final String aContentId, final Track aTrack) {
+                contentId = aContentId;
+                track = aTrack;
+            }
+        }
+
+        private final List<QueueTrack> queue;
+
+        private PlayerState playerState;
+
+        private MediaInfo currentMedia;
+
+        private boolean newTracks;
+
+        MediaSession() {
+            queue = new ArrayList<>();
+            playerState = PlayerState.IDLE;
+            currentMedia = null;
+            newTracks = false;
+        }
+
+        final void add(final String contentId, final Track track) {
+            newTracks = true;
+            queue.add(new QueueTrack(contentId, track));
+        }
+
+        final Optional<Track> currentTrack() {
+            return Optional.ofNullable(currentMedia).flatMap(this::track);
+        }
+
+        final boolean hasNewTracks() {
+            return newTracks;
+        }
+
+        final boolean isQueueEmpty() {
+            return queue.isEmpty();
+        }
+
+        final PlayerState playerState() {
+            return playerState;
+        }
+
+        final void reset() {
+            queue.clear();
+            playerState = PlayerState.IDLE;
+            currentMedia = null;
+            newTracks = false;
+        }
+
+        final void setPlayerState(final PlayerState state) {
+            playerState = state;
+        }
+
+        final Optional<Track> track(final MediaInfo media) {
+            final String contentId = media.contentId();
+            return queue.stream().filter(qt -> qt.contentId.equals(contentId)).map(qt -> qt.track).findFirst();
+        }
+
+        final List<Track> tracks(final List<QueueItem> queueItems) {
+            final List<Track> tracks = new ArrayList<>();
+            for (final QueueItem qi : queueItems) {
+                track(qi.media()).ifPresent(tracks::add);
+            }
+            newTracks = false;
+            return tracks;
+        }
+
+        final void update(final MediaStatus newStatus) {
+            if (newStatus.media().isPresent()) {
+                currentMedia = newStatus.media().get();
+            }
+            playerState = newStatus.playerState();
+        }
+
+    }
+
     @FunctionalInterface
     private static interface PlaybackTask {
 
         void run() throws IOException, TimeoutException, MediaRequestException;
 
-    }
-
-    private static class QueueTrack {
-
-        final String contentId;
-
-        final Track track;
-
-        QueueTrack(final String aContentId, final Track aTrack) {
-            contentId = aContentId;
-            track = aTrack;
-        }
     }
 
     private static final class View {
@@ -756,12 +784,7 @@ final class Player {
         }
 
         final void clearQueue() {
-            Platform.runLater(() -> {
-                playPause.setGraphic(Jfx.image(PLAY));
-                playPause.setDisable(true);
-                currentTrack.reset();
-                queue.getChildren().clear();
-            });
+            Platform.runLater(() -> resetPlayback());
         }
 
         final void deviceConnected() {
@@ -774,12 +797,14 @@ final class Player {
         final void deviceDisconnected() {
             Platform.runLater(() -> {
                 clearError();
+                resetPlayback();
                 connection.pseudoClassStateChanged(CONNECTED, false);
             });
         }
 
         final void deviceDisconnected(final String deviceId, final String error) {
             Platform.runLater(() -> {
+                resetPlayback();
                 devices
                     .getItems()
                     .stream()
@@ -849,6 +874,13 @@ final class Player {
         private void internalSetCurrentTrack(final Track track) {
             playPause.setGraphic(Jfx.image(PAUSE));
             currentTrack.set(track);
+        }
+
+        private void resetPlayback() {
+            playPause.setGraphic(Jfx.image(PLAY));
+            playPause.setDisable(true);
+            currentTrack.reset();
+            queue.getChildren().clear();
         }
 
     }

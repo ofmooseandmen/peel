@@ -4,9 +4,10 @@ plugins {
     id 'eclipse'
     id 'org.openjfx.javafxplugin' version '0.0.8'
 }
-apply from: 'gradle/eclipse-prefs/eclipse.gradle'
+apply from: 'resources/eclipse/eclipse.gradle'
 
 repositories {
+    // mavenLocal()
     mavenCentral()
 }
 
@@ -15,7 +16,7 @@ targetCompatibility = JavaVersion.VERSION_11
 
 dependencies {
     implementation(
-        'com.github.ofmooseandmen:wire:2020.04'
+        'com.github.ofmooseandmen:wire:2020.05-SNAPSHOT'
     )
 }
 
@@ -66,13 +67,8 @@ eclipse {
     jdt { file { withProperties eclipsePrefs } } 
 }
 
-task ('copyEclipsePrefs', type: Copy) {
-    from rootProject.file('gradle/eclipse-prefs/org.eclipse.jdt.ui.prefs')
+task copyEclipsePrefs(type: Copy) {
+    from rootProject.file('resources/eclipse/org.eclipse.jdt.ui.prefs')
     into "${projectDir}/.settings"
 }
 tasks.eclipse.finalizedBy copyEclipsePrefs
-
-wrapper {
-    gradleVersion = '6.3'
-    distributionType = Wrapper.DistributionType.BIN
-}
