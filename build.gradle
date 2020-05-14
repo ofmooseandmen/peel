@@ -7,7 +7,7 @@ plugins {
 apply from: 'resources/eclipse/eclipse.gradle'
 
 repositories {
-    // mavenLocal()
+    mavenLocal()
     mavenCentral()
 }
 
@@ -16,7 +16,9 @@ targetCompatibility = JavaVersion.VERSION_11
 
 dependencies {
     implementation(
-        'com.github.ofmooseandmen:wire:2020.05-SNAPSHOT'
+        'com.github.ofmooseandmen.wire:wire-device:2020.05-SNAPSHOT',
+        'com.github.ofmooseandmen.wire:wire-discovery:2020.05-SNAPSHOT',
+        'com.github.ofmooseandmen.wire:wire-media:2020.05-SNAPSHOT'
     )
 }
 

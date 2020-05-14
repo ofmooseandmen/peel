@@ -85,8 +85,6 @@ final class Player {
     static final class Controller
             implements CastDeviceBrowserListener, ActionHandler, Playback, ConnectedDeviceListener {
 
-        private static final String PLAYBACK_ERROR = "Playback error: ";
-
         private final UrlResolver urlResolver;
 
         private CastDeviceBrowser browser;
@@ -116,6 +114,14 @@ final class Player {
         }
 
         @Override
+        public final void deviceDiscovered(final CastDeviceController controller) {
+            executor.execute(() -> {
+                controllers.put(controller.deviceId(), controller);
+                view.addDevice(controller.deviceId(), controller.deviceName());
+            });
+        }
+
+        @Override
         public final void deviceRemoved(final CastDeviceController controller) {
             executor.execute(() -> {
                 final String deviceId = controller.deviceId();
@@ -126,15 +132,6 @@ final class Player {
                     connected = null;
                     view.deviceDisconnected(deviceId, "device not reachable");
                 }
-            });
-        }
-
-        @Override
-        public final void deviceDiscovered(final CastDeviceController controller) {
-            executor.execute(() -> {
-                System.err.println(controller.deviceAddress());
-                controllers.put(controller.deviceId(), controller);
-                view.addDevice(controller.deviceId(), controller.deviceName());
             });
         }
 
@@ -216,7 +213,7 @@ final class Player {
                     connected.addListener(this);
                     view.deviceConnected();
                 } catch (final IOException | TimeoutException e) {
-                    controller.close();
+                    controller.disconnect();
                     connected = null;
                     view.deviceDisconnected(deviceId, e.getMessage());
                 }
@@ -273,14 +270,6 @@ final class Player {
 
         final Node widget() {
             return view.pane;
-        }
-
-        private String errToString(final Error error) {
-            final StringBuilder sb = new StringBuilder(PLAYBACK_ERROR);
-            sb.append(error.errorType());
-            error.errorReason().ifPresent(r -> sb.append(" [" + r + "]"));
-            error.detailedErrorCode().ifPresent(c -> sb.append(" (" + c + ")"));
-            return sb.toString();
         }
 
         private void executeLoad(final LoadTask task) {
@@ -388,8 +377,12 @@ final class Player {
                 try {
                     final List<Track> tracks = queuedTracks();
                     listeners.forEach(l -> l.queueUpdated(tracks));
-                } catch (final IOException | TimeoutException | MediaRequestException e) {
-                    listeners.forEach(l -> l.playbackError("Could not get track queue"));
+                } catch (final IOException | TimeoutException e) {
+                    listeners.forEach(l -> l.playbackError("Could not get track queue: " + e.getMessage()));
+                    return;
+                } catch (final MediaRequestException e) {
+                    final String err = errToString(e.error());
+                    listeners.forEach(l -> l.playbackError("Could not get track queue: " + err));
                     return;
                 }
             }
@@ -447,7 +440,7 @@ final class Player {
             } catch (final IOException | TimeoutException e) {
                 LOGGER.log(Level.WARNING, e, () -> "Could not stop media application");
             }
-            deviceController.close();
+            deviceController.disconnect();
         }
 
         final List<Track> play(final List<Track> tracks)
@@ -888,5 +881,11 @@ final class Player {
     private static final PseudoClass CONNECTED = PseudoClass.getPseudoClass("connected");
 
     private static final PseudoClass ERROR = PseudoClass.getPseudoClass("error");
+
+    private static final String PLAYBACK_ERROR = "Playback error: ";
+
+    private static String errToString(final Error error) {
+        return PLAYBACK_ERROR + error.toString();
+    }
 
 }

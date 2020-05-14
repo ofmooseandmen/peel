@@ -198,13 +198,14 @@ final class Library {
                 }
             });
 
-            tracks.addEventHandler(MouseEvent.MOUSE_EXITED, e -> toggle.setSelected(false));
+            final Runnable close = () -> toggle.setSelected(false);
+            tracks.addEventHandler(MouseEvent.MOUSE_EXITED, e -> close.run());
 
-            album.tracks.forEach(this::addTrack);
+            album.tracks.forEach(t -> addTrack(t, close));
 
         }
 
-        private void addTrack(final Track track) {
+        private void addTrack(final Track track, final Runnable close) {
             final HBox pane = new HBox();
             pane.setUserData(track);
             final Node trackName = new Label(track.name);
@@ -215,12 +216,18 @@ final class Library {
 
             final Button play = new Button("play");
             play.getStyleClass().add("peel-library-play");
-            play.setOnAction(e -> player.playTracks(Arrays.asList(track)));
+            play.setOnAction(e -> {
+                player.playTracks(Arrays.asList(track));
+                close.run();
+            });
             pane.getChildren().add(play);
 
             final Button add = new Button("add");
             add.getStyleClass().add("peel-library-add");
-            add.setOnAction(e -> player.queueTracks(Arrays.asList(track)));
+            add.setOnAction(e -> {
+                player.queueTracks(Arrays.asList(track));
+                close.run();
+            });
             pane.getChildren().add(add);
 
             pane.getStyleClass().add("peel-library-album-track");
