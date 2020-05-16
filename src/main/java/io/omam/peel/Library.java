@@ -398,9 +398,9 @@ final class Library {
             search = new HBox();
             search.getStyleClass().add("peel-library-search-bar");
 
-            final Label icon = new Label(SEARCH);
-            icon.getStyleClass().addAll("peel-library-search-bar-icon", "peel-library-search-icon");
-            search.getChildren().add(icon);
+            final Label searchIcon = new Label(SEARCH);
+            searchIcon.getStyleClass().addAll("peel-library-search-bar-icon", "peel-library-search-icon");
+            search.getChildren().add(searchIcon);
 
             searchType = new Label(SearchType.ARTIST.display());
             searchType.setUserData(SearchType.ARTIST);
@@ -467,7 +467,10 @@ final class Library {
         }
 
         final void searchOver() {
-            // TODO icon = search + text if results is empty.
+            Platform.runLater(() -> {
+                // TODO remove search in progress indication.
+                // TODO text if results is empty.
+            });
         }
 
         final void searchStarted(final boolean allArtists) {
@@ -476,7 +479,7 @@ final class Library {
                 artists.clear();
                 final Node value = allArtists ? artists : albums;
                 scrollPane.setContent(value);
-                // TODO icon = spinner
+                // TODO add search in progress indication.
             });
         }
 

@@ -373,19 +373,6 @@ final class Player {
         @Override
         public final void mediaStatusUpdated(final MediaStatus newStatus) {
             mediaSession.update(newStatus);
-            if (mediaSession.hasNewTracks() && mediaSession.playerState() != PlayerState.IDLE) {
-                try {
-                    final List<Track> tracks = queuedTracks();
-                    listeners.forEach(l -> l.queueUpdated(tracks));
-                } catch (final IOException | TimeoutException e) {
-                    listeners.forEach(l -> l.playbackError("Could not get track queue: " + e.getMessage()));
-                    return;
-                } catch (final MediaRequestException e) {
-                    final String err = errToString(e.error());
-                    listeners.forEach(l -> l.playbackError("Could not get track queue: " + err));
-                    return;
-                }
-            }
             final PlayerState playerState = mediaSession.playerState();
             if (playerState == PlayerState.PAUSED) {
                 listeners.forEach(ConnectedDeviceListener::playbackPaused);
@@ -587,26 +574,18 @@ final class Player {
 
         private MediaInfo currentMedia;
 
-        private boolean newTracks;
-
         MediaSession() {
             queue = new ArrayList<>();
             playerState = PlayerState.IDLE;
             currentMedia = null;
-            newTracks = false;
         }
 
         final void add(final String contentId, final Track track) {
-            newTracks = true;
             queue.add(new QueueTrack(contentId, track));
         }
 
         final Optional<Track> currentTrack() {
             return Optional.ofNullable(currentMedia).flatMap(this::track);
-        }
-
-        final boolean hasNewTracks() {
-            return newTracks;
         }
 
         final boolean isQueueEmpty() {
@@ -621,7 +600,6 @@ final class Player {
             queue.clear();
             playerState = PlayerState.IDLE;
             currentMedia = null;
-            newTracks = false;
         }
 
         final void setPlayerState(final PlayerState state) {
@@ -638,7 +616,6 @@ final class Player {
             for (final QueueItem qi : queueItems) {
                 track(qi.media()).ifPresent(tracks::add);
             }
-            newTracks = false;
             return tracks;
         }
 
