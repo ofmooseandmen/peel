@@ -63,7 +63,7 @@
     -fx-border-width: 0px 0px 1px 0px;
     -fx-border-color: grey;
     -fx-padding: 10px;
-    -fx-font-size: 20px;
+    -fx-font-size: 24px;
 }
 
 .peel-library-search-bar-type {
@@ -252,7 +252,7 @@
 }
 
 .peel-player-connection:connected {
-    -fx-border-color: green;
+    -fx-border-color: limegreen;
 }
 
 .peel-player-connection:error {

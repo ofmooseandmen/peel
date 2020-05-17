@@ -388,6 +388,8 @@ final class Library {
 
         private final ToggleGroup toggleGroup;
 
+        private final Fader searching;
+
         View(final SearchHandler searchHandler, final Playback aPlayer) {
             player = aPlayer;
 
@@ -449,6 +451,8 @@ final class Library {
 
             toggleGroup = new ToggleGroup();
 
+            searching = new Fader(searchIcon);
+
         }
 
         final void addAlbum(final Album album) {
@@ -468,18 +472,18 @@ final class Library {
 
         final void searchOver() {
             Platform.runLater(() -> {
-                // TODO remove search in progress indication.
+                searching.stop();
                 // TODO text if results is empty.
             });
         }
 
         final void searchStarted(final boolean allArtists) {
             Platform.runLater(() -> {
+                searching.start();
                 albums.getChildren().clear();
                 artists.clear();
                 final Node value = allArtists ? artists : albums;
                 scrollPane.setContent(value);
-                // TODO add search in progress indication.
             });
         }
 

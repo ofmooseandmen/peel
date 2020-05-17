@@ -174,7 +174,10 @@ final class Player {
 
         @Override
         public final void playTracks(final List<Track> tracks) {
-            executeLoad(() -> connected.play(tracks));
+            executeLoad(() -> {
+                view.waiting();
+                return connected.play(tracks);
+            });
         }
 
         @Override
@@ -184,7 +187,10 @@ final class Player {
 
         @Override
         public final void queueTracks(final List<Track> tracks) {
-            executeLoad(() -> connected.addToQueue(tracks));
+            executeLoad(() -> {
+                view.waiting();
+                return connected.addToQueue(tracks);
+            });
         }
 
         @Override
@@ -195,6 +201,7 @@ final class Player {
         @Override
         public final void requestConnection(final String deviceId) {
             executor.execute(() -> {
+                view.waiting();
                 if (connected != null) {
                     view.setError(connected.deviceName() + " already connected");
                     return;
@@ -224,6 +231,7 @@ final class Player {
         @Override
         public final void requestDisconnection(final String deviceId) {
             executor.execute(() -> {
+                view.waiting();
                 if (connected != null) {
                     connected.disconnect();
                     connected = null;
@@ -235,6 +243,7 @@ final class Player {
         @Override
         public final void stopPlayback() {
             executePlayback(() -> {
+                view.waiting();
                 connected.stopPlayback();
                 view.clearQueue();
             });
@@ -243,6 +252,7 @@ final class Player {
         @Override
         public final void togglePlayback() {
             executePlayback(() -> {
+                view.waiting();
                 final PlayerState state = connected.togglePlayback();
                 if (state == PlayerState.PAUSED) {
                     view.setPause();
@@ -665,6 +675,8 @@ final class Player {
 
         private final Button playPause;
 
+        private final Fader requesting;
+
         View(final ActionHandler anActionHandler) {
             ah = anActionHandler;
             pane = new VBox();
@@ -735,6 +747,7 @@ final class Player {
 
             pane.getChildren().add(scrollPane);
 
+            requesting = new Fader(connection);
         }
 
         final void addDevice(final String deviceId, final Optional<String> deviceName) {
@@ -795,21 +808,29 @@ final class Player {
 
         final void setError(final String error) {
             Platform.runLater(() -> {
+                requesting.stop();
                 connection.pseudoClassStateChanged(ERROR, true);
                 connection.setTooltip(new Tooltip(error));
             });
         }
 
         final void setPause() {
-            Platform.runLater(() -> playPause.setGraphic(Jfx.image(PAUSE)));
+            Platform.runLater(() -> {
+                requesting.stop();
+                playPause.setGraphic(Jfx.image(PAUSE));
+            });
         }
 
         final void setPlay() {
-            Platform.runLater(() -> playPause.setGraphic(Jfx.image(PLAY)));
+            Platform.runLater(() -> {
+                requesting.stop();
+                playPause.setGraphic(Jfx.image(PLAY));
+            });
         }
 
         final void setQueue(final List<Track> tracks) {
             Platform.runLater(() -> {
+                requesting.stop();
                 playPause.setDisable(false);
                 queue.getChildren().clear();
                 int rowIndex = 0;
@@ -831,12 +852,18 @@ final class Player {
             });
         }
 
+        final void waiting() {
+            Platform.runLater(() -> requesting.start());
+        }
+
         private void clearError() {
+            requesting.stop();
             connection.setTooltip(null);
             connection.pseudoClassStateChanged(ERROR, false);
         }
 
         private void internalResetCurrentTrack() {
+            requesting.stop();
             playPause.setGraphic(Jfx.image(PLAY));
             currentTrack.reset();
         }
@@ -847,6 +874,7 @@ final class Player {
         }
 
         private void resetPlayback() {
+            requesting.stop();
             playPause.setGraphic(Jfx.image(PLAY));
             playPause.setDisable(true);
             currentTrack.reset();
