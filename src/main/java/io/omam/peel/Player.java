@@ -43,6 +43,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import io.omam.peel.Tracks.Track;
 import io.omam.wire.device.CastDeviceController;
@@ -75,7 +76,6 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
@@ -520,7 +520,7 @@ final class Player {
 
         private final Label trackName;
 
-        private final Label artistAlbum;
+        private final Label albumArtist;
 
         CurrentTrackView() {
             getStyleClass().add("peel-player-current");
@@ -532,9 +532,9 @@ final class Player {
             trackName.getStyleClass().add("peel-player-current-track-name");
             trackName.setAlignment(Pos.CENTER);
 
-            artistAlbum = new Label();
-            artistAlbum.getStyleClass().add("peel-player-current-artist-album");
-            artistAlbum.setAlignment(Pos.CENTER);
+            albumArtist = new Label();
+            albumArtist.getStyleClass().add("peel-player-current-album-artist");
+            albumArtist.setAlignment(Pos.CENTER);
 
             getChildren().add(idle);
         }
@@ -547,11 +547,11 @@ final class Player {
 
         final void set(final Track track) {
             trackName.setText(track.name);
-            artistAlbum.setText(track.album + " by " + track.artist);
+            albumArtist.setText(track.album + " by " + track.artist);
             final ObservableList<Node> childrens = getChildren();
             if (childrens.contains(idle)) {
                 childrens.remove(idle);
-                childrens.addAll(trackName, artistAlbum);
+                childrens.addAll(trackName, albumArtist);
             }
         }
 
@@ -645,27 +645,64 @@ final class Player {
 
     }
 
+    private static final class QueueTrackView extends VBox {
+
+        private static final PseudoClass PAST = PseudoClass.getPseudoClass("past");
+
+        private final Track track;
+
+        QueueTrackView(final Track aTrack) {
+            track = aTrack;
+            getStyleClass().add("peel-player-queue-track");
+            final Label trackName = new Label(track.name);
+            trackName.getStyleClass().add("peel-player-queue-track-name");
+            getChildren().add(trackName);
+            final Label albumArtist = new Label(track.album + " by " + track.artist);
+            albumArtist.getStyleClass().add("peel-player-queue-track-album-artist");
+            getChildren().add(albumArtist);
+        }
+
+        final void setPast() {
+            pseudoClassStateChanged(PAST, true);
+        }
+
+        final Track track() {
+            return track;
+        }
+
+        final void unsetPast() {
+            pseudoClassStateChanged(PAST, false);
+        }
+
+    }
+
     private static final class View {
 
-        private static final String CAST = "cast-black-48dp-30";
+        private static final String CAST_ICON = "cast-24px";
 
-        private static final String PREV = "skip_previous-black-48dp-30";
+        private static final String VOLUME_ICON = "volume_up-24px";
 
-        private static final String NEXT = "skip_next-black-48dp-30";
+        private static final String STOP_ICON = "stop-24px";
 
-        private static final String STOP = "stop-black-48dp-30";
+        private static final String SKIP_NEXT_ICON = "skip_next-24px";
 
-        private static final String VOLUME = "volume_up-black-48dp-30";
+        private static final String PLAY_ICON = "play_circle_outline-24px";
 
-        private static final String PAUSE = "pause_circle_outline-black-48dp-30";
+        private static final String SKIP_PREVIOUS_ICON = "skip_previous-24px";
 
-        private static final String PLAY = "play_circle_outline-black-48dp-30";
+        private static final String PAUSE_ICON = "pause_circle_outline-24px";
+
+        private static final String CAST_CONNECTED_ICON = "cast_connected-24px";
+
+        private static final double ICON_LARGER_SCALE = 1.5;
+
+        private static final PseudoClass ERROR = PseudoClass.getPseudoClass("error");
 
         private final ActionHandler ah;
 
         private final VBox pane;
 
-        private final GridPane queue;
+        private final VBox queue;
 
         private final ContextMenu devices;
 
@@ -692,8 +729,7 @@ final class Player {
             BorderPane.setAlignment(controls, Pos.CENTER);
             controls.getStyleClass().add("peel-player-controls");
 
-            connection = new Button(null, Jfx.image(CAST));
-            connection.getStyleClass().add("peel-player-connection");
+            connection = Jfx.button(CAST_ICON, ICON_LARGER_SCALE, "peel-player-connection");
 
             devices = new ContextMenu();
             devices.getStyleClass().add("peel-player-devices");
@@ -704,7 +740,7 @@ final class Player {
 
             connection.addEventHandler(MouseEvent.MOUSE_RELEASED, e -> {
                 if (e.getButton() == MouseButton.PRIMARY) {
-                    devices.show(connection, Side.TOP, 0, 0);
+                    devices.show(connection, Side.BOTTOM, 0, 0);
                 } else {
                     clearError();
                 }
@@ -712,31 +748,31 @@ final class Player {
 
             controls.getChildren().add(connection);
 
-            final Button prev = new Button(null, Jfx.image(PREV));
+            final Button prev = Jfx.button(SKIP_PREVIOUS_ICON, "peel-player-previous");
             controls.getChildren().add(prev);
             prev.setDisable(true);
             prev.setOnAction(e -> ah.prev());
 
-            playPause = new Button(null, Jfx.image(PLAY));
+            playPause = Jfx.button(PLAY_ICON, ICON_LARGER_SCALE, "peel-player-playpause");
             controls.getChildren().add(playPause);
             playPause.setDisable(true);
             playPause.setOnAction(e -> ah.togglePlayback());
 
-            final Button next = new Button(null, Jfx.image(NEXT));
+            final Button next = Jfx.button(SKIP_NEXT_ICON, "peel-player-next");
             controls.getChildren().add(next);
             next.setDisable(true);
             next.setOnAction(e -> ah.next());
 
-            final Button stop = new Button(null, Jfx.image(STOP));
+            final Button stop = Jfx.button(STOP_ICON, ICON_LARGER_SCALE, "peel-player-stop");
             controls.getChildren().add(stop);
             stop.setOnAction(e -> ah.stopPlayback());
 
-            final Button volume = new Button(null, Jfx.image(VOLUME));
+            final Button volume = Jfx.button(VOLUME_ICON, "peel-player-volume");
             controls.getChildren().add(volume);
 
             pane.getChildren().add(controls);
 
-            queue = new GridPane();
+            queue = new VBox();
             queue.getStyleClass().add("peel-player-queue");
 
             final ScrollPane scrollPane = new ScrollPane();
@@ -773,7 +809,7 @@ final class Player {
         final void deviceConnected() {
             Platform.runLater(() -> {
                 clearError();
-                connection.pseudoClassStateChanged(CONNECTED, true);
+                connection.setGraphic(Jfx.icon(CAST_CONNECTED_ICON, ICON_LARGER_SCALE));
             });
         }
 
@@ -781,7 +817,7 @@ final class Player {
             Platform.runLater(() -> {
                 clearError();
                 resetPlayback();
-                connection.pseudoClassStateChanged(CONNECTED, false);
+                connection.setGraphic(Jfx.icon(CAST_ICON, ICON_LARGER_SCALE));
             });
         }
 
@@ -793,7 +829,7 @@ final class Player {
                     .stream()
                     .filter(mi -> deviceId.equals(mi.getUserData()))
                     .forEach(mi -> ((CheckMenuItem) mi).setSelected(false));
-                connection.pseudoClassStateChanged(CONNECTED, false);
+                connection.pseudoClassStateChanged(ERROR, true);
                 connection.setTooltip(new Tooltip(error));
             });
         }
@@ -817,14 +853,14 @@ final class Player {
         final void setPause() {
             Platform.runLater(() -> {
                 requesting.stop();
-                playPause.setGraphic(Jfx.image(PAUSE));
+                playPause.setGraphic(Jfx.icon(PLAY_ICON, ICON_LARGER_SCALE));
             });
         }
 
         final void setPlay() {
             Platform.runLater(() -> {
                 requesting.stop();
-                playPause.setGraphic(Jfx.image(PLAY));
+                playPause.setGraphic(Jfx.icon(PAUSE_ICON, ICON_LARGER_SCALE));
             });
         }
 
@@ -833,22 +869,7 @@ final class Player {
                 requesting.stop();
                 playPause.setDisable(false);
                 queue.getChildren().clear();
-                int rowIndex = 0;
-                for (final Track track : tracks) {
-                    final Label trackName = new Label(track.name);
-                    trackName.getStyleClass().add("peel-player-queue-track-name");
-                    queue.add(trackName, 0, rowIndex);
-
-                    final Label albumName = new Label(track.album);
-                    trackName.getStyleClass().add("peel-player-queue-track-album");
-                    queue.add(albumName, 1, rowIndex);
-
-                    final Label artistName = new Label(track.artist);
-                    trackName.getStyleClass().add("peel-player-queue-track-artist");
-                    queue.add(artistName, 2, rowIndex);
-
-                    rowIndex++;
-                }
+                queue.getChildren().addAll(tracks.stream().map(QueueTrackView::new).collect(Collectors.toList()));
             });
         }
 
@@ -864,28 +885,31 @@ final class Player {
 
         private void internalResetCurrentTrack() {
             requesting.stop();
-            playPause.setGraphic(Jfx.image(PLAY));
+            playPause.setGraphic(Jfx.icon(PLAY_ICON, ICON_LARGER_SCALE));
             currentTrack.reset();
+            queue.getChildren().stream().map(c -> (QueueTrackView) c).forEach(QueueTrackView::unsetPast);
         }
 
         private void internalSetCurrentTrack(final Track track) {
-            playPause.setGraphic(Jfx.image(PAUSE));
+            playPause.setGraphic(Jfx.icon(PAUSE_ICON, ICON_LARGER_SCALE));
             currentTrack.set(track);
+            queue
+                .getChildren()
+                .stream()
+                .map(c -> (QueueTrackView) c)
+                .takeWhile(t -> !t.track().equals(track))
+                .forEach(QueueTrackView::setPast);
         }
 
         private void resetPlayback() {
             requesting.stop();
-            playPause.setGraphic(Jfx.image(PLAY));
+            playPause.setGraphic(Jfx.icon(PLAY_ICON, ICON_LARGER_SCALE));
             playPause.setDisable(true);
             currentTrack.reset();
             queue.getChildren().clear();
         }
 
     }
-
-    private static final PseudoClass CONNECTED = PseudoClass.getPseudoClass("connected");
-
-    private static final PseudoClass ERROR = PseudoClass.getPseudoClass("error");
 
     private static final String PLAYBACK_ERROR = "Playback error: ";
 

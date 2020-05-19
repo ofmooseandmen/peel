@@ -33,10 +33,7 @@ package io.omam.peel;
 import java.io.IOException;
 import java.io.InputStream;
 
-import javafx.scene.Node;
-import javafx.scene.control.Label;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
+import javafx.scene.control.Button;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -61,12 +58,26 @@ final class Jfx {
         vbox.getChildren().add(region);
     }
 
-    static Node image(final String name) {
-        try (final InputStream is = Jfx.class.getClassLoader().getResourceAsStream("images/" + name + ".png")) {
-            final Image img = new Image(is);
-            return new ImageView(img);
+    static Button button(final String iconName, final double iconScale, final String styleclass) {
+        final Button button = new Button();
+        button.setGraphic(Jfx.icon(iconName, iconScale));
+        button.getStyleClass().add(styleclass);
+        return button;
+    }
+
+    static Button button(final String iconName, final String styleclass) {
+        return button(iconName, 1.0, styleclass);
+    }
+
+    static Region icon(final String name) {
+        return icon(name, 1.0);
+    }
+
+    static Region icon(final String name, final double scale) {
+        try (final InputStream is = Jfx.class.getClassLoader().getResourceAsStream("icons/" + name + ".svg")) {
+            return SvgParser.parse(is, scale);
         } catch (final IOException e) {
-            return new Label(name);
+            throw new IllegalArgumentException(e);
         }
     }
 

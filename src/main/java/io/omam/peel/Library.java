@@ -152,19 +152,18 @@ final class Library {
             final HBox controls = new HBox();
             controls.getStyleClass().add("peel-library-album-controls");
 
-            final Button play = new Button("play");
-            play.getStyleClass().add("peel-library-play");
+            final Button play = Jfx.button(PLAY_ICON, "peel-library-play");
             play.setOnAction(e -> player.playTracks(trackData()));
             controls.getChildren().add(play);
 
-            final Button add = new Button("add");
-            add.getStyleClass().add("peel-library-add");
+            final Button add = Jfx.button(ADD_ICON, "peel-library-add");
             add.setOnAction(e -> player.queueTracks(trackData()));
             controls.getChildren().add(add);
 
             Jfx.addSpacing(controls);
 
-            final ToggleButton toggle = new ToggleButton(HAMBURGER);
+            final ToggleButton toggle = new ToggleButton();
+            toggle.setGraphic(Jfx.icon(LIST_ICON));
             toggle.setToggleGroup(toggleGroup);
             toggle.getStyleClass().add("peel-library-album-toggle");
 
@@ -187,13 +186,12 @@ final class Library {
             toggle.selectedProperty().addListener((obs, ov, nv) -> {
                 if (nv) {
                     pseudoClassStateChanged(EXPANDED, true);
-                    toggle.setText(CROSS);
-                    // TODO: change position?
-                    final Point2D point = localToScreen(0, 0);
-                    popup.show(this, point.getX() + getWidth() + 5, point.getY());
+                    toggle.setGraphic(Jfx.icon(CLEAR_ICON));
+                    final Point2D point = toggle.localToScreen(0, 0);
+                    popup.show(this, point.getX() + toggle.getWidth(), point.getY());
                 } else {
                     pseudoClassStateChanged(EXPANDED, false);
-                    toggle.setText(HAMBURGER);
+                    toggle.setGraphic(Jfx.icon(LIST_ICON));
                     popup.hide();
                 }
             });
@@ -214,16 +212,14 @@ final class Library {
 
             Jfx.addSpacing(pane);
 
-            final Button play = new Button("play");
-            play.getStyleClass().add("peel-library-play");
+            final Button play = Jfx.button(PLAY_ICON, 0.75, "peel-library-play");
             play.setOnAction(e -> {
                 player.playTracks(Arrays.asList(track));
                 close.run();
             });
             pane.getChildren().add(play);
 
-            final Button add = new Button("add");
-            add.getStyleClass().add("peel-library-add");
+            final Button add = Jfx.button(ADD_ICON, 0.75, "peel-library-add");
             add.setOnAction(e -> {
                 player.queueTracks(Arrays.asList(track));
                 close.run();
@@ -298,17 +294,15 @@ final class Library {
 
             getChildren().add(label);
 
-            Jfx.addSpacing(this);
-
-            // FIXME: show to the left on mouse over
-            final Label search = new Label(SEARCH);
-            search.getStyleClass().addAll("peel-library-artist-search", "peel-library-search-icon");
-
-            getChildren().add(search);
+            final Label search = new Label();
+            search.setGraphic(Jfx.icon(SEARCH_ICON, 0.75));
+            search.getStyleClass().addAll("peel-library-artist-search");
 
             // FIXME: exact match
             addEventHandler(MouseEvent.MOUSE_RELEASED, e -> searchField.setText(artist.name));
 
+            addEventHandler(MouseEvent.MOUSE_ENTERED, e -> getChildren().add(0, search));
+            addEventHandler(MouseEvent.MOUSE_EXITED, e -> getChildren().remove(search));
         }
     }
 
@@ -400,8 +394,9 @@ final class Library {
             search = new HBox();
             search.getStyleClass().add("peel-library-search-bar");
 
-            final Label searchIcon = new Label(SEARCH);
-            searchIcon.getStyleClass().addAll("peel-library-search-bar-icon", "peel-library-search-icon");
+            final Label searchIcon = new Label();
+            searchIcon.setGraphic(Jfx.icon(SEARCH_ICON));
+            searchIcon.getStyleClass().addAll("peel-library-search-bar-icon");
             search.getChildren().add(searchIcon);
 
             searchType = new Label(SearchType.ARTIST.display());
@@ -420,7 +415,8 @@ final class Library {
 
             Jfx.addSpacing(search);
 
-            searchClear = new Button(CROSS);
+            searchClear = new Button();
+            searchClear.setGraphic(Jfx.icon(CLEAR_ICON));
             searchClear.getStyleClass().add("peel-library-search-bar-clear");
 
             searchClear.setOnAction(e -> searchField.clear());
@@ -502,11 +498,15 @@ final class Library {
 
     }
 
-    private static final String CROSS = "\u00D7";
+    private static final String LIST_ICON = "list-24px";
 
-    private static final String HAMBURGER = "\u2630";
+    private static final String ADD_ICON = "add_circle_outline-24px";
 
-    private static final String SEARCH = "\u26B2";
+    private static final String CLEAR_ICON = "clear-24px";
+
+    private static final String SEARCH_ICON = "search-24px";
+
+    private static final String PLAY_ICON = "play_circle_outline-24px";
 
     private static final PseudoClass EXPANDED = PseudoClass.getPseudoClass("expanded");
 

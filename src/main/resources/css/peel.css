@@ -2,6 +2,20 @@
     src: url("/font/Roboto-Regular.ttf");
 }
 
+
+/* default. */
+.button, .toggle-button {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0px;
+    -fx-padding: 0px;
+}
+
+.check-menu-item:checked > .left-container > .check {
+    -fx-background-color: -fx-mark-color;
+    -fx-shape: "M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z";
+    -fx-scale-shape: false;
+}
+
 /*
  * Root.
  */
@@ -9,13 +23,6 @@
     -fx-font-family: Roboto;
     -fx-background-color: white;
     -fx-background-insets: 0;
-    -fx-padding: 0px;
-}
-
-/* default. */
-.button, .toggle-button {
-    -fx-background-color: transparent;
-    -fx-background-insets: 0px;
     -fx-padding: 0px;
 }
 
@@ -54,16 +61,12 @@
     -fx-background-color: white;
 }
  
-.peel-library-search-icon {
-   -fx-rotate: 315;
-}
-
 /* search bar view. */
 .peel-library-search-bar {
     -fx-border-width: 0px 0px 1px 0px;
     -fx-border-color: grey;
     -fx-padding: 10px;
-    -fx-font-size: 24px;
+    -fx-font-size: 22px;
 }
 
 .peel-library-search-bar-type {
@@ -71,16 +74,25 @@
 }
 
 .peel-library-search-bar-icon {
-    -fx-text-fill: black;
     -fx-padding: 0px 5px 0px 0px;
 }
+
+.peel-library-search-bar-icon .shape {
+    -fx-padding: 0px 5px 0px 0px;
+    -fx-fill: black;
+}
+
 
 .peel-library-search-bar-type:hover {
     -fx-text-fill: black;
 }
 
-.peel-library-search-bar-clear {
-    -fx-text-fill: grey;
+.peel-library-search-bar-clear .shape {
+    -fx-fill: grey;
+}
+
+.peel-library-search-bar-clear:hover .shape {
+    -fx-fill: black;
 }
 
 /* artists view. */
@@ -102,13 +114,16 @@
     -fx-padding: 5px 0px 5px 10px;
 }
 
-.peel-library-artist-name, .peel-library-artist-search {
-    -fx-font-size: 16px;
+.peel-library-artist-name {
     -fx-text-fill: grey;
+    -fx-font-size: 16px;
 }
 
-.peel-library-artist:hover .peel-library-artist-name,
-.peel-library-artist:hover .peel-library-artist-search { 
+.peel-library-artist-search {
+    -fx-padding: 0px 5px 0px 0px;
+}
+
+.peel-library-artist:hover .peel-library-artist-name { 
     -fx-text-fill: black;
 } 
 
@@ -152,16 +167,16 @@
     -fx-border-color: lightgrey;
 }
 
-.peel-library-album-controls .label {
-    -fx-font-size: 16px;
+.peel-library-play .shape,
+.peel-library-add .shape,
+.peel-library-album-toggle .shape {
+    -fx-fill: lightgrey;
 }
 
-.peel-library-play, .peel-library-add, .peel-library-album-toggle {
-    -fx-text-fill: lightgrey;
-}
-
-.peel-library-play:hover, .peel-library-add:hover, .peel-library-album-toggle:hover {
-    -fx-text-fill: black;
+.peel-library-play:hover .shape,
+.peel-library-add:hover .shape,
+.peel-library-album-toggle:hover .shape {
+    -fx-fill: black;
 }
 
 .peel-library-album-tracks {
@@ -207,13 +222,13 @@
 
 .peel-player-current-track-name {
     -fx-font-size: 24px;
-    -fx-text-fill: grey;
+    -fx-text-fill: black;
     -fx-padding: 10px 0px 10px 0px;
 }
 
-.peel-player-current-artist-album {
+.peel-player-current-album-artist {
     -fx-font-size: 20px;
-    -fx-text-fill: darkgrey;
+    -fx-text-fill: grey;
     -fx-padding: 0px 0px 10px 0px;
 }
 
@@ -221,7 +236,7 @@
 .peel-player-controls {
     -fx-border-width: 0px 0px 1px 0px;
     -fx-border-color: grey;
-    -fx-padding: 5px 0px 5px 0px;
+    -fx-padding: 10px 0px 10px 0px;
 }
 
 /* devices view. */
@@ -229,8 +244,11 @@
     -fx-padding: 2px;
     -fx-border-width: 1px;
     -fx-border-color: darkgrey;
-    -fx-font-size: 16px;
     -fx-background-color: white;
+}
+
+.peel-player-devices-title .text, .peel-player-devices-device .text {
+    -fx-font-size: 14px;
 }
 
 .peel-player-devices-title:disabled, .peel-player-devices-title:disabled:hover {
@@ -251,12 +269,8 @@
     -fx-padding: 5px;
 }
 
-.peel-player-connection:connected {
-    -fx-border-color: limegreen;
-}
-
-.peel-player-connection:error {
-    -fx-border-color: orange;
+.peel-player-connection:error .shape {
+    -fx-fill: orange;
 }
 
 .peel-player-controls-current {
@@ -271,6 +285,27 @@
 
 /* player queue view. */
 .peel-player-queue {
-    -fx-padding: 5px;
+    -fx-padding: 5px 0px 5px 0px;
     -fx-background-color: white;
 }
+
+.peel-player-queue-track {
+    -fx-padding: 5px;
+}
+
+.peel-player-queue-track-name {
+    -fx-text-fill: grey;
+    -fx-font-size: 16px;
+    -fx-padding: 0px 0px 2px 0px;
+}
+
+.peel-player-queue-track-album-artist {
+    -fx-text-fill: darkgrey;
+    -fx-font-size: 14px;
+}
+
+.peel-player-queue-track:past .peel-player-queue-track-name,
+.peel-player-queue-track:past .peel-player-queue-track-album-artist {
+    -fx-text-fill: lightgrey;
+}
+
