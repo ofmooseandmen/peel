@@ -61,7 +61,6 @@ import io.omam.wire.media.MediaStatus.PlayerState;
 import io.omam.wire.media.MediaStatusListener;
 import io.omam.wire.media.QueueItem;
 import javafx.application.Platform;
-import javafx.collections.ObservableList;
 import javafx.css.PseudoClass;
 import javafx.geometry.Pos;
 import javafx.geometry.Side;
@@ -516,18 +515,12 @@ final class Player {
 
     private static final class CurrentTrackView extends VBox {
 
-        private final Label idle;
-
         private final Label trackName;
 
         private final Label albumArtist;
 
         CurrentTrackView() {
             getStyleClass().add("peel-player-current");
-            idle = new Label("idle");
-            idle.getStyleClass().add("peel-player-current-idle");
-            idle.setAlignment(Pos.CENTER);
-
             trackName = new Label("no track playing");
             trackName.getStyleClass().add("peel-player-current-track-name");
             trackName.setAlignment(Pos.CENTER);
@@ -536,23 +529,19 @@ final class Player {
             albumArtist.getStyleClass().add("peel-player-current-album-artist");
             albumArtist.setAlignment(Pos.CENTER);
 
-            getChildren().add(idle);
+            reset();
+
+            getChildren().addAll(trackName, albumArtist);
         }
 
         final void reset() {
-            final ObservableList<Node> childrens = getChildren();
-            childrens.clear();
-            childrens.add(idle);
+            trackName.setText("Idle");
+            albumArtist.setText("...");
         }
 
         final void set(final Track track) {
             trackName.setText(track.name);
             albumArtist.setText(track.album + " by " + track.artist);
-            final ObservableList<Node> childrens = getChildren();
-            if (childrens.contains(idle)) {
-                childrens.remove(idle);
-                childrens.addAll(trackName, albumArtist);
-            }
         }
 
     }
