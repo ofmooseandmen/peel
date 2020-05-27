@@ -39,6 +39,8 @@ interface Playback {
 
     void playTracks(final List<Track> tracks);
 
-    void queueTracks(final List<Track> tracks);
+    void queueTracksLast(final List<Track> tracks);
+
+    void queueTracksNext(final List<Track> tracks);
 
 }

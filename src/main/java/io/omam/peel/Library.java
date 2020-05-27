@@ -53,6 +53,7 @@ import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.ScrollPane.ScrollBarPolicy;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.input.MouseEvent;
@@ -147,65 +148,74 @@ final class Library {
             final HBox controls = new HBox();
             controls.getStyleClass().add("peel-library-album-controls");
 
-            final Button play = Jfx.button(PLAY_ICON, ICON_SMALLER_SCALE, "peel-library-play");
-            play.setOnAction(e -> player.playTracks(trackData()));
-            controls.getChildren().add(play);
+            final Button playNow = Jfx.button(PLAY_NOW_ICON, "peel-library-play-now");
+            playNow.setText("now");
+            playNow.setOnAction(e -> player.playTracks(trackData()));
+            controls.getChildren().add(playNow);
 
-            final Button add = Jfx.button(ADD_ICON, ICON_SMALLER_SCALE, "peel-library-add");
-            add.setOnAction(e -> player.queueTracks(trackData()));
-            controls.getChildren().add(add);
+            final Button playNext = Jfx.button(PLAY_NEXT_ICON, "peel-library-play-next");
+            playNext.setText("next");
+            playNext.setOnAction(e -> player.queueTracksNext(trackData()));
+            controls.getChildren().add(playNext);
+
+            final Button playLast = Jfx.button(PLAY_LAST_ICON, "peel-library-play-last");
+            playLast.setText("last");
+            playLast.setOnAction(e -> player.queueTracksLast(trackData()));
+            controls.getChildren().add(playLast);
 
             Jfx.addSpacing(controls);
 
             final ToggleButton toggle = new ToggleButton();
-            toggle.setGraphic(Jfx.icon(LIST_ICON, ICON_SMALLER_SCALE));
+            toggle.setGraphic(Jfx.icon(LIST_ICON));
             toggle.getStyleClass().add("peel-library-album-toggle");
 
             controls.getChildren().add(toggle);
-
-            Jfx.addSpacing(this);
 
             getChildren().add(controls);
 
             tracks = new VBox();
             tracks.getStyleClass().add("peel-library-album-tracks");
 
+            album.tracks.stream().map(this::toTrack).forEach(tracks.getChildren()::add);
+
             toggle.selectedProperty().addListener((obs, ov, nv) -> {
                 if (nv) {
                     pseudoClassStateChanged(EXPANDED, true);
-                    toggle.setGraphic(Jfx.icon(CLEAR_ICON, ICON_SMALLER_SCALE));
-                    getChildren().add(tracks);
+                    toggle.setGraphic(Jfx.icon(CLEAR_ICON));
+                    getChildren().addAll(tracks);
                 } else {
                     pseudoClassStateChanged(EXPANDED, false);
-                    toggle.setGraphic(Jfx.icon(LIST_ICON, ICON_SMALLER_SCALE));
-                    getChildren().remove(tracks);
+                    toggle.setGraphic(Jfx.icon(LIST_ICON));
+                    getChildren().removeAll(tracks);
                 }
             });
 
-            album.tracks.forEach(this::addTrack);
-
         }
 
-        private void addTrack(final Track track) {
-            final HBox pane = new HBox();
-            pane.setUserData(track);
+        private HBox toTrack(final Track track) {
+            final HBox hbox = new HBox();
+            hbox.setUserData(track);
             final Label trackName = new Label(track.name);
             trackName.getStyleClass().add("peel-library-album-track-name");
-            pane.getChildren().add(trackName);
+            hbox.getChildren().add(trackName);
 
-            Jfx.addSpacing(pane);
+            Jfx.addSpacing(hbox);
 
-            final Button play = Jfx.button(PLAY_ICON, ICON_SMALLER_SCALE, "peel-library-play");
-            play.setOnAction(e -> player.playTracks(Arrays.asList(track)));
-            pane.getChildren().add(play);
+            final Button playNow = Jfx.button(PLAY_NOW_ICON, "peel-library-play-now");
+            playNow.setOnAction(e -> player.playTracks(Arrays.asList(track)));
+            hbox.getChildren().add(playNow);
 
-            final Button add = Jfx.button(ADD_ICON, ICON_SMALLER_SCALE, "peel-library-add");
-            add.setOnAction(e -> player.queueTracks(Arrays.asList(track)));
-            pane.getChildren().add(add);
+            final Button playNext = Jfx.button(PLAY_NEXT_ICON, "peel-library-play-next");
+            playNext.setOnAction(e -> player.queueTracksNext(Arrays.asList(track)));
+            hbox.getChildren().add(playNext);
 
-            pane.getStyleClass().add("peel-library-album-track");
+            final Button playLast = Jfx.button(PLAY_LAST_ICON, "peel-library-play-last");
+            playLast.setOnAction(e -> player.queueTracksLast(Arrays.asList(track)));
+            hbox.getChildren().add(playLast);
 
-            tracks.getChildren().add(pane);
+            hbox.getStyleClass().add("peel-library-album-track");
+            return hbox;
+
         }
 
         private List<Track> trackData() {
@@ -270,7 +280,7 @@ final class Library {
             getChildren().add(label);
 
             final Label search = new Label();
-            search.setGraphic(Jfx.icon(SEARCH_ICON, ICON_SMALLER_SCALE));
+            search.setGraphic(Jfx.icon(SEARCH_ICON));
             search.getStyleClass().addAll("peel-library-artist-search");
 
             // FIXME: exact match
@@ -389,7 +399,7 @@ final class Library {
             Jfx.addSpacing(search);
 
             searchClear = new Button();
-            searchClear.setGraphic(Jfx.icon(CLEAR_ICON, ICON_SMALLER_SCALE));
+            searchClear.setGraphic(Jfx.icon(CLEAR_ICON));
             searchClear.getStyleClass().add("peel-library-search-bar-clear");
 
             searchClear.setOnAction(e -> searchField.clear());
@@ -404,6 +414,7 @@ final class Library {
             scrollPane = new ScrollPane();
             scrollPane.setFitToWidth(true);
             scrollPane.setFitToHeight(true);
+            scrollPane.setVbarPolicy(ScrollBarPolicy.ALWAYS);
             scrollPane.getStyleClass().add("peel-library-scroll");
             pane.setCenter(scrollPane);
 
@@ -469,17 +480,17 @@ final class Library {
 
     }
 
-    private static final double ICON_SMALLER_SCALE = 0.75;
-
     private static final String LIST_ICON = "list-24px";
-
-    private static final String ADD_ICON = "add_circle_outline-24px";
 
     private static final String CLEAR_ICON = "clear-24px";
 
     private static final String SEARCH_ICON = "search-24px";
 
-    private static final String PLAY_ICON = "play_circle_outline-24px";
+    private static final String PLAY_NOW_ICON = "play_circle_outline-24px";
+
+    private static final String PLAY_NEXT_ICON = "queue_music-24px";
+
+    private static final String PLAY_LAST_ICON = "playlist_add-24px";
 
     private static final PseudoClass EXPANDED = PseudoClass.getPseudoClass("expanded");
 

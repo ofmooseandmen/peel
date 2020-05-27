@@ -58,24 +58,16 @@ final class Jfx {
         vbox.getChildren().add(region);
     }
 
-    static Button button(final String iconName, final double iconScale, final String styleclass) {
+    static Button button(final String iconName, final String styleclass) {
         final Button button = new Button();
-        button.setGraphic(Jfx.icon(iconName, iconScale));
+        button.setGraphic(icon(iconName));
         button.getStyleClass().add(styleclass);
         return button;
     }
 
-    static Button button(final String iconName, final String styleclass) {
-        return button(iconName, 1.0, styleclass);
-    }
-
     static Region icon(final String name) {
-        return icon(name, 1.0);
-    }
-
-    static Region icon(final String name, final double scale) {
         try (final InputStream is = Jfx.class.getClassLoader().getResourceAsStream("icons/" + name + ".svg")) {
-            return SvgParser.parse(is, scale);
+            return SvgParser.parse(is);
         } catch (final IOException e) {
             throw new IllegalArgumentException(e);
         }

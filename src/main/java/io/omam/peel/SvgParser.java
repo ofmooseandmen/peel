@@ -60,7 +60,7 @@ final class SvgParser {
         // empty.
     }
 
-    static Region parse(final InputStream input, final double scale) {
+    static Region parse(final InputStream input) {
         final DocumentBuilderFactory builderFactory = DocumentBuilderFactory.newInstance();
         builderFactory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
         builderFactory.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
@@ -72,8 +72,8 @@ final class SvgParser {
                 throw new IllegalArgumentException("Not an SVG document");
             }
             final StackPane pane = new StackPane();
-            setSize(pane, rootElement, scale);
-            final Collection<SVGPath> paths = parsePaths(rootElement.getChildNodes(), scale);
+            setSize(pane, rootElement);
+            final Collection<SVGPath> paths = parsePaths(rootElement.getChildNodes());
             if (paths.isEmpty()) {
                 throw new IllegalArgumentException("No SVG path");
             }
@@ -84,18 +84,16 @@ final class SvgParser {
         }
     }
 
-    private static Optional<SVGPath> parsePath(final Element elt, final double scale) {
+    private static Optional<SVGPath> parsePath(final Element elt) {
         final String fill = elt.getAttribute("fill");
         if (fill.equalsIgnoreCase("none")) {
             return Optional.empty();
         }
         final SVGPath path = new SVGPath();
-        path.getStyleClass().add("shape");
+        path.getStyleClass().add("svg-path");
         if (!fill.isEmpty()) {
             path.setFill(Paint.valueOf(fill));
         }
-        path.setScaleX(scale);
-        path.setScaleY(scale);
 
         final String fillRule = elt.getAttribute("fill-rule");
         if (!fillRule.isEmpty()) {
@@ -115,23 +113,23 @@ final class SvgParser {
 
     }
 
-    private static Collection<SVGPath> parsePaths(final NodeList nodes, final double scale) {
+    private static Collection<SVGPath> parsePaths(final NodeList nodes) {
         final Collection<SVGPath> paths = new ArrayList<>();
         for (int i = 0; i < nodes.getLength(); i++) {
             final Node node = nodes.item(i);
             if (node.getNodeName().equalsIgnoreCase("path")) {
-                parsePath((Element) node, scale).ifPresent(paths::add);
+                parsePath((Element) node).ifPresent(paths::add);
             }
         }
         return paths;
     }
 
-    private static void setSize(final Region region, final Element elt, final double scale) {
+    private static void setSize(final Region region, final Element elt) {
         try {
             final int width = Integer.parseInt(elt.getAttribute("width"));
             final int height = Integer.parseInt(elt.getAttribute("height"));
-            region.setPrefWidth(width * scale);
-            region.setPrefHeight(height * scale);
+            region.setMinWidth(width);
+            region.setMinHeight(height);
         } catch (final NumberFormatException e) {
             // ignore.
         }

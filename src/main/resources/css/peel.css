@@ -18,13 +18,6 @@
     -fx-padding: 0px;
 }
 
-.check-menu-item:checked > .left-container > .check {
-    -fx-background-color: -fx-mark-color;
-    -fx-shape: "M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z";
-    -fx-scale-shape: false;
-}
-
-
 /*******************************************************************************
  *                                                                             *
  * ScrollBar                                                                   *
@@ -90,15 +83,6 @@
     -fx-background-color: transparent;
 }
 
-/*
- * Root.
- */
-.peel-root {
-    -fx-font-family: Roboto;
-    -fx-background-insets: 0;
-    -fx-padding: 0px;
-}
-
 .text-field {
     -fx-background-color: white;
     -fx-background-insets: 0;
@@ -128,6 +112,16 @@
 }
 
 /*
+ * Root.
+ */
+.peel-root {
+    -fx-font-family: Roboto;
+    -fx-background-insets: 0;
+    -fx-padding: 0px;
+}
+
+
+/*
  * Library view.
  */
 .peel-library {
@@ -150,7 +144,7 @@
     -fx-padding: 0 0.5em 0 0;
 }
 
-.peel-library-search-bar-icon .shape {
+.peel-library-search-bar-icon .svg-path {
     -fx-fill: black;
 }
 
@@ -158,11 +152,11 @@
     -fx-text-fill: black;
 }
 
-.peel-library-search-bar-clear .shape {
+.peel-library-search-bar-clear .svg-path {
     -fx-fill: grey;
 }
 
-.peel-library-search-bar-clear:hover .shape {
+.peel-library-search-bar-clear:hover .svg-path {
     -fx-fill: black;
 }
 
@@ -194,6 +188,11 @@
     -fx-padding: 0 0.5em 0 0;
 }
 
+.peel-library-artist-search .svg-path {
+    -fx-scale-x: 0.75;
+    -fx-scale-y: 0.75;
+}
+
 .peel-library-artist:hover .peel-library-artist-name { 
     -fx-text-fill: black;
 } 
@@ -206,7 +205,7 @@
 
 /* album view. */
 .peel-library-album {
-    -fx-padding: 1em;
+    -fx-padding: 0.5em 1em 0.5em 1em;
     -fx-border-width: 1px;
     -fx-border-color: lightgrey;
     -fx-border-insets: 1em;
@@ -227,8 +226,40 @@
     -fx-text-overrun: center-word-ellipsis;
 }
 
-.peel-library-play {
-    -fx-padding: 0 1em 0 0;
+.peel-library-play-now,
+.peel-library-play-next,
+.peel-library-play-last {
+    -fx-font-size: 1em;
+    -fx-text-fill: lightgrey;
+}
+
+.peel-library-play-now .text,
+.peel-library-play-next .text,
+.peel-library-play-last .text {
+    -fx-translate-x: -5;
+}
+
+.peel-library-play-now .svg-path,
+.peel-library-play-next .svg-path,
+.peel-library-play-last .svg-path,
+.peel-library-album-toggle .svg-path {
+    -fx-scale-x: 0.75;
+    -fx-scale-y: 0.75;
+    -fx-fill: lightgrey;
+}
+
+.peel-library-play-now:hover,
+.peel-library-play-next:hover,
+.peel-library-play-last:hover,
+.peel-library-album-toggle:hover {
+    -fx-text-fill: black;
+}
+
+.peel-library-play-now:hover .svg-path,
+.peel-library-play-next:hover .svg-path,
+.peel-library-play-last:hover .svg-path,
+.peel-library-album-toggle:hover .svg-path {
+    -fx-fill: black;
 }
 
 .peel-library-album-controls {
@@ -236,18 +267,7 @@
     -fx-border-insets: 0.5em 0 0 0;
     -fx-border-width: 1px 0px 0px 0px;
     -fx-border-color: lightgrey;
-}
-
-.peel-library-play .shape,
-.peel-library-add .shape,
-.peel-library-album-toggle .shape {
-    -fx-fill: lightgrey;
-}
-
-.peel-library-play:hover .shape,
-.peel-library-add:hover .shape,
-.peel-library-album-toggle:hover .shape {
-    -fx-fill: black;
+    -fx-spacing: 0.5em;
 }
 
 .peel-library-album-tracks {
@@ -278,18 +298,19 @@
 .peel-player-current {
     -fx-border-width: 0px 0px 1px 0px;
     -fx-border-color: grey;
+    -fx-padding: 1em 0 1em 0;
 }
 
 .peel-player-current .peel-player-current-track-name {
     -fx-font-size: 2em;
     -fx-text-fill: black;
-    -fx-padding: 1em 0 1em 0;
+    -fx-padding: 0;
 }
 
 .peel-player-current .peel-player-current-album-artist {
     -fx-font-size: 1.25em;
     -fx-text-fill: grey;
-    -fx-padding: 0 0 1em 0;
+    -fx-padding: 1em 0 0 0;
 }
 
 /* player controls. */
@@ -319,6 +340,12 @@
     -fx-border-color: darkgrey;
 }
 
+.peel-player-devices-device > .left-container > .check {
+    -fx-background-color: grey;
+    -fx-shape: "M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z";
+    -fx-scale-shape: false;
+}
+
 .peel-player-devices-device:hover, .peel-player-devices-device:focused {
     -fx-background-color: lightgrey;
 }
@@ -330,7 +357,14 @@
     -fx-padding: 0.5em;
 }
 
-.peel-player-connection:error .shape {
+.peel-player-connection .svg-path,
+.peel-player-playpause .svg-path,
+.peel-player-stop .svg-path {
+    -fx-scale-x: 1.5;
+    -fx-scale-y: 1.5;
+}
+
+.peel-player-connection:error .svg-path {
     -fx-fill: orange;
 }
 
@@ -341,6 +375,10 @@
 /* player queue view. */
 .peel-player-queue-track {
     -fx-padding: 0.5em;
+}
+
+.peel-player-queue-track:odd {
+    -fx-background-color: whitesmoke;
 }
 
 .peel-player-queue-track-name {
@@ -359,3 +397,18 @@
     -fx-text-fill: lightgrey;
 }
 
+.peel-player-queue-track-remove {
+    -fx-padding: 0 0 0 0.25em;
+}
+
+.peel-player-queue-track-play .svg-path,
+.peel-player-queue-track-remove .svg-path {
+    -fx-fill: lightgrey;
+    -fx-scale-x: 0.75;
+    -fx-scale-y: 0.75;
+}
+
+.peel-player-queue-track-play:hover .svg-path,
+.peel-player-queue-track-remove:hover .svg-path {
+    -fx-fill: black;
+}
