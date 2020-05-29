@@ -38,6 +38,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
@@ -198,11 +199,6 @@ final class Player {
         }
 
         @Override
-        public final void queueUpdated(final List<Track> tracks) {
-            executor.execute(() -> view.setQueue(tracks));
-        }
-
-        @Override
         public final void removeFromQueue(final Track track) {
             executeQueue(() -> connected.removeFromQueue(track));
         }
@@ -314,8 +310,8 @@ final class Player {
                     return;
                 }
                 try {
-                    final List<Track> tracks = task.run();
-                    view.setQueue(tracks);
+                    final QueueTask.QueueState q = task.run();
+                    view.setQueue(q.tracks, q.currentTrack);
                 } catch (final MediaRequestException e) {
                     view.setError(errToString(e.error()));
                 } catch (final Exception e) {
@@ -426,7 +422,7 @@ final class Player {
             listeners.add(l);
         }
 
-        final List<Track> appendToQueue(final List<Track> tracks)
+        final QueueTask.QueueState appendToQueue(final List<Track> tracks)
                 throws IOException, TimeoutException, MediaRequestException {
             if (mediaSession.isQueueEmpty()) {
                 return play(tracks);
@@ -457,7 +453,7 @@ final class Player {
             mediaController.next();
         }
 
-        final List<Track> play(final List<Track> tracks)
+        final QueueTask.QueueState play(final List<Track> tracks)
                 throws IOException, TimeoutException, MediaRequestException {
             if (mediaSession.playerState() != PlayerState.IDLE) {
                 stopPlayback();
@@ -470,7 +466,7 @@ final class Player {
             mediaController.jump(mediaSession.jumpTo(track));
         }
 
-        final List<Track> playNext(final List<Track> tracks)
+        final QueueTask.QueueState playNext(final List<Track> tracks)
                 throws IOException, TimeoutException, MediaRequestException {
             if (mediaSession.isQueueEmpty()) {
                 return play(tracks);
@@ -483,9 +479,10 @@ final class Player {
             mediaController.previous();
         }
 
-        final List<Track> removeFromQueue(final Track track)
+        final QueueTask.QueueState removeFromQueue(final Track track)
                 throws IOException, TimeoutException, MediaRequestException {
-            mediaController.removeFromQueue(Collections.singletonList(mediaSession.itemId(track)));
+            final int id = mediaSession.remove(track);
+            mediaController.removeFromQueue(Collections.singletonList(id));
             return queuedTracks();
         }
 
@@ -512,9 +509,10 @@ final class Player {
             return playerState;
         }
 
-        private List<Track> queuedTracks() throws IOException, TimeoutException, MediaRequestException {
+        private QueueTask.QueueState queuedTracks() throws IOException, TimeoutException, MediaRequestException {
             final List<QueueItem> items = mediaController.getQueueItems();
-            return mediaSession.withQueueItems(items);
+            final List<Track> tracks = mediaSession.withQueueItems(items);
+            return new QueueTask.QueueState(tracks, mediaSession.currentTrack());
         }
 
         private List<MediaInfo> storeTracks(final List<Track> tracks) {
@@ -549,8 +547,6 @@ final class Player {
         void playbackPaused();
 
         void playbackStopped();
-
-        void queueUpdated(final List<Track> tracks);
 
     }
 
@@ -595,10 +591,17 @@ final class Player {
 
             final Track track;
 
+            QueueItem item;
+
             QueueTrack(final String aContentId, final Track aTrack) {
                 contentId = aContentId;
                 track = aTrack;
             }
+
+            final void associate(final QueueItem anItem) {
+                item = anItem;
+            }
+
         }
 
         private final List<QueueTrack> tracks;
@@ -608,8 +611,6 @@ final class Player {
         private MediaInfo currentMedia;
 
         private Optional<Integer> currentItemId;
-
-        private List<QueueItem> items;
 
         MediaSession() {
             tracks = new ArrayList<>();
@@ -622,56 +623,43 @@ final class Player {
         }
 
         final Optional<Track> currentTrack() {
-            return Optional.ofNullable(currentMedia).flatMap(this::track);
+            return Optional.ofNullable(currentMedia).flatMap(this::track).map(qt -> qt.track);
         }
 
         final boolean isQueueEmpty() {
             return tracks.isEmpty();
         }
 
-        final int itemId(final Track track) {
-            final Optional<String> optContentId =
-                    tracks.stream().filter(t -> t.track == track).map(t -> t.contentId).findFirst();
-            if (optContentId.isEmpty()) {
-                return -1;
-            }
-            final String contentId = optContentId.get();
-            final Optional<Integer> optId = items
-                .stream()
-                .filter(i -> i.media().contentId().equals(contentId))
-                .map(i -> i.itemId())
-                .findFirst();
-            if (optId.isEmpty()) {
-                return -1;
-            }
-            return optId.get();
-        }
-
         final int jumpTo(final Track track) {
             if (currentItemId.isEmpty()) {
                 return 0;
             }
-            final Optional<String> optContentId =
-                    tracks.stream().filter(t -> t.track == track).map(t -> t.contentId).findFirst();
-            if (optContentId.isEmpty()) {
+
+            final int curId = currentItemId.get();
+            int currentIndex = -1;
+            for (int i = 0; i < tracks.size(); i++) {
+                final QueueTrack qt = tracks.get(i);
+                if (qt.item != null && qt.item.itemId() == curId) {
+                    currentIndex = i;
+                    break;
+                }
+            }
+            if (currentIndex == -1) {
                 return 0;
             }
-            final String contentId = optContentId.get();
-            final Optional<Integer> optNextId = items
-                .stream()
-                .filter(i -> i.media().contentId().equals(contentId))
-                .map(i -> i.itemId())
-                .findFirst();
-            if (optNextId.isEmpty()) {
+
+            int jumpIndex = -1;
+            for (int i = 0; i < tracks.size(); i++) {
+                if (tracks.get(i).track == track) {
+                    jumpIndex = i;
+                    break;
+                }
+            }
+            if (jumpIndex == -1) {
                 return 0;
             }
-            final int nextId = optNextId.get();
-            final int current = currentItemId.get();
-            return (int) items
-                .stream()
-                .dropWhile(i -> i.itemId() != current)
-                .takeWhile(i -> i.itemId() != nextId)
-                .count();
+
+            return jumpIndex - currentIndex;
         }
 
         final int nextItemId() {
@@ -679,13 +667,29 @@ final class Player {
                 return -1;
             }
             final int current = currentItemId.get();
-            final Optional<QueueItem> next =
-                    items.stream().dropWhile(i -> i.itemId() != current).skip(1).findFirst();
+            final Optional<QueueItem> next = tracks
+                .stream()
+                .dropWhile(i -> i.item != null && i.item.itemId() != current)
+                .skip(1)
+                .findFirst()
+                .map(qt -> qt.item);
             return next.map(QueueItem::itemId).orElse(-1);
         }
 
         final PlayerState playerState() {
             return playerState;
+        }
+
+        final int remove(final Track track) {
+            final int id = tracks
+                .stream()
+                .filter(qt -> qt.track == track)
+                .findFirst()
+                .flatMap(qt -> Optional.ofNullable(qt.item))
+                .map(QueueItem::itemId)
+                .orElse(-1);
+            tracks.removeIf(qt -> Objects.equals(qt.track, track));
+            return id;
         }
 
         final void reset() {
@@ -698,9 +702,9 @@ final class Player {
             playerState = state;
         }
 
-        final Optional<Track> track(final MediaInfo media) {
+        final Optional<QueueTrack> track(final MediaInfo media) {
             final String contentId = media.contentId();
-            return tracks.stream().filter(qt -> qt.contentId.equals(contentId)).map(qt -> qt.track).findFirst();
+            return tracks.stream().filter(qt -> qt.contentId.equals(contentId)).findFirst();
         }
 
         final void update(final MediaStatus newStatus) {
@@ -714,9 +718,11 @@ final class Player {
         final List<Track> withQueueItems(final List<QueueItem> queueItems) {
             final List<Track> result = new ArrayList<>();
             for (final QueueItem qi : queueItems) {
-                track(qi.media()).ifPresent(result::add);
+                track(qi.media()).ifPresent(qt -> {
+                    qt.associate(qi);
+                    result.add(qt.track);
+                });
             }
-            items = queueItems;
             return result;
         }
 
@@ -732,7 +738,20 @@ final class Player {
     @FunctionalInterface
     private static interface QueueTask {
 
-        List<Track> run() throws IOException, TimeoutException, MediaRequestException;
+        final class QueueState {
+
+            final List<Track> tracks;
+
+            final Optional<Track> currentTrack;
+
+            QueueState(final List<Track> someTracks, final Optional<Track> aCurrentTrack) {
+                tracks = someTracks;
+                currentTrack = aCurrentTrack;
+            }
+
+        }
+
+        QueueState run() throws IOException, TimeoutException, MediaRequestException;
 
     }
 
@@ -968,12 +987,7 @@ final class Player {
                 requesting.stop();
                 playPause.setGraphic(Jfx.icon(PAUSE_ICON));
                 currentTrack.set(track);
-                queue
-                    .getChildren()
-                    .stream()
-                    .map(c -> (QueueTrackView) c)
-                    .takeWhile(t -> !t.track().equals(track))
-                    .forEach(QueueTrackView::setPast);
+                updatePast(track);
             });
         }
 
@@ -999,7 +1013,7 @@ final class Player {
             });
         }
 
-        final void setQueue(final List<Track> tracks) {
+        final void setQueue(final List<Track> tracks, final Optional<Track> current) {
             Platform.runLater(() -> {
                 requesting.stop();
                 enableControls();
@@ -1009,6 +1023,7 @@ final class Player {
                     views.add(new QueueTrackView(tracks.get(i), i % 2 == 0, ah));
                 }
                 queue.getChildren().addAll(views);
+                current.ifPresent(this::updatePast);
             });
         }
 
@@ -1044,6 +1059,19 @@ final class Player {
             disableControls();
             currentTrack.reset();
             queue.getChildren().clear();
+        }
+
+        private void updatePast(final Track current) {
+            boolean afterCurrent = false;
+            for (final Node child : queue.getChildren()) {
+                final QueueTrackView qt = (QueueTrackView) child;
+                afterCurrent = afterCurrent || qt.track() == current;
+                if (afterCurrent) {
+                    qt.unsetPast();
+                } else {
+                    qt.setPast();
+                }
+            }
         }
 
     }
