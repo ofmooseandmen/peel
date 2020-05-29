@@ -28,19 +28,42 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-package io.omam.peel;
+package io.omam.peel.player;
 
-import java.util.List;
+import io.omam.peel.tracks.Track;
+import javafx.geometry.Pos;
+import javafx.scene.control.Label;
+import javafx.scene.layout.VBox;
 
-import io.omam.peel.Tracks.Track;
+final class CurrentTrackView extends VBox {
 
-@SuppressWarnings("javadoc")
-interface Playback {
+    private final Label trackName;
 
-    void playTracks(final List<Track> tracks);
+    private final Label albumArtist;
 
-    void queueTracksLast(final List<Track> tracks);
+    CurrentTrackView() {
+        getStyleClass().add("peel-player-current");
+        trackName = new Label("no track playing");
+        trackName.getStyleClass().add("peel-player-current-track-name");
+        trackName.setAlignment(Pos.CENTER);
 
-    void queueTracksNext(final List<Track> tracks);
+        albumArtist = new Label();
+        albumArtist.getStyleClass().add("peel-player-current-album-artist");
+        albumArtist.setAlignment(Pos.CENTER);
+
+        reset();
+
+        getChildren().addAll(trackName, albumArtist);
+    }
+
+    final void reset() {
+        trackName.setText("Idle");
+        albumArtist.setText("...");
+    }
+
+    final void set(final Track track) {
+        trackName.setText(track.name());
+        albumArtist.setText(track.album() + " by " + track.artist());
+    }
 
 }

@@ -34,6 +34,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Set;
 
+import io.omam.peel.library.LibraryController;
+import io.omam.peel.player.PlayerController;
+import io.omam.peel.server.MediaHttpServer;
+import io.omam.peel.server.MediaServer;
 import javafx.application.Application;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -47,9 +51,9 @@ public final class PeelFX extends Application {
 
     private static final Set<String> SUPPORTED_FORMATS = Set.of("MP3", "AAC", "WAV", "FLAC", "M4A", "M4B");
 
-    private Player.Controller player;
+    private PlayerController player;
 
-    private Library.Controller library;
+    private LibraryController library;
 
     private MediaServer server;
 
@@ -87,8 +91,8 @@ public final class PeelFX extends Application {
         final int mediaServerPort = mediaServerPort();
         server = MediaHttpServer.start(libraryRootPath, mediaServerPort);
 
-        player = new Player.Controller(server);
-        library = new Library.Controller(libraryRootPath, SUPPORTED_FORMATS, player);
+        player = new PlayerController(server);
+        library = new LibraryController(libraryRootPath, SUPPORTED_FORMATS, player);
 
         final Node lw = library.widget();
         GridPane.setVgrow(lw, Priority.ALWAYS);

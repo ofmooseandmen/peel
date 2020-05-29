@@ -382,7 +382,7 @@ ext.eclipsePrefs = { p ->
     p.put("org.eclipse.jdt.core.compiler.problem.missingHashCodeMethod", "error")
     p.put("org.eclipse.jdt.core.compiler.problem.missingJavadocComments", "warning")
     p.put("org.eclipse.jdt.core.compiler.problem.missingJavadocCommentsOverriding", "disabled")
-    p.put("org.eclipse.jdt.core.compiler.problem.missingJavadocCommentsVisibility", "private")
+    p.put("org.eclipse.jdt.core.compiler.problem.missingJavadocCommentsVisibility", "public")
     p.put("org.eclipse.jdt.core.compiler.problem.missingJavadocTagDescription", "all_standard_tags")
     p.put("org.eclipse.jdt.core.compiler.problem.missingJavadocTags", "warning")
     p.put("org.eclipse.jdt.core.compiler.problem.missingJavadocTagsMethodTypeParameters", "enabled")

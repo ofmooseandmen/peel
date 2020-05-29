@@ -28,7 +28,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-package io.omam.peel;
+package io.omam.peel.jfx;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -53,7 +53,6 @@ import javafx.scene.paint.Paint;
 import javafx.scene.shape.FillRule;
 import javafx.scene.shape.SVGPath;
 
-@SuppressWarnings("javadoc")
 final class SvgParser {
 
     private SvgParser() {

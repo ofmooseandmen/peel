@@ -28,7 +28,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-package io.omam.peel;
+package io.omam.peel.tracks;
 
 import java.io.File;
 import java.io.IOException;
@@ -45,75 +45,13 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @SuppressWarnings("javadoc")
-final class Tracks {
+public final class Tracks {
 
-    static class Album {
-
-        final String artist;
-
-        final String name;
-
-        final List<Track> tracks;
-
-        Album(final String anArtist, final String aName, final List<Track> someTracks) {
-            artist = anArtist;
-            name = aName;
-            tracks = someTracks;
-        }
-    }
-
-    static class Artist {
-
-        final String name;
-
-        final String firstChar;
-
-        Artist(final String aName, final String aFirstChar) {
-            name = aName;
-            firstChar = aFirstChar;
-        }
-
-    }
-
-    enum FirstChar {
-        LETTER,
-        OTHER,
-    }
-
-    static interface SearchListener<T> {
-
-        void found(final T item);
-
-        void searchOver();
-
-        void searchStarted();
-
-    }
-
-    static final class Track {
-
-        final String artist;
-
-        final String album;
-
-        final String name;
-
-        final Path path;
-
-        Track(final String anArtist, final String anAlbum, final String aName, final Path aPath) {
-            artist = anArtist;
-            album = anAlbum;
-            name = aName;
-            path = aPath;
-        }
-
-    }
-
-    private static final Comparator<? super Track> TRACK_COMPARATOR = Comparator.comparing(t -> t.name);
+    private static final Comparator<? super Track> TRACK_COMPARATOR = Comparator.comparing(t -> t.name());
 
     private static final Comparator<? super Artist> ARTIST_COMPARATOR = Comparator
-        .<Artist, String> comparing(a -> a.firstChar, String.CASE_INSENSITIVE_ORDER)
-        .thenComparing(a -> a.name);
+        .<Artist, String> comparing(a -> a.firstChar(), String.CASE_INSENSITIVE_ORDER)
+        .thenComparing(a -> a.name());
 
     private static final String IGNORE = "the ";
 
@@ -121,7 +59,7 @@ final class Tracks {
         // empty.
     }
 
-    static Runnable searchArtists(final Path artists, final SearchListener<List<Artist>> listener) {
+    public static Runnable searchArtists(final Path artists, final SearchListener<List<Artist>> listener) {
 
         final Filter<Path> filter = p -> {
             final File f = p.toFile();
@@ -148,7 +86,7 @@ final class Tracks {
         };
     }
 
-    static Runnable searchByAlbum(final Path artists, final Set<String> supportedFormats,
+    public static Runnable searchByAlbum(final Path artists, final Set<String> supportedFormats,
             final Predicate<String> predicate, final SearchListener<Album> listener) {
 
         final Filter<Path> filter = p -> predicate.test(fileName(p));
@@ -183,7 +121,7 @@ final class Tracks {
         };
     }
 
-    static Runnable searchByArtist(final Path artists, final Set<String> supportedFormats,
+    public static Runnable searchByArtist(final Path artists, final Set<String> supportedFormats,
             final Predicate<String> predicate, final SearchListener<Album> listener) {
 
         final Filter<Path> filter = p -> predicate.test(fileName(p));

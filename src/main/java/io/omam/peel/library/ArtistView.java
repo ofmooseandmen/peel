@@ -28,49 +28,33 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-package io.omam.peel;
+package io.omam.peel.library;
 
-import java.io.IOException;
-import java.io.InputStream;
-
-import javafx.scene.control.Button;
+import io.omam.peel.jfx.Jfx;
+import io.omam.peel.tracks.Artist;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
-import javafx.scene.layout.VBox;
 
-@SuppressWarnings("javadoc")
-final class Jfx {
+final class ArtistView extends HBox {
 
-    private Jfx() {
-        // empty.
+    ArtistView(final Artist artist, final TextField searchField) {
+        getStyleClass().add("peel-library-artist");
+
+        final Label label = new Label(artist.name());
+        label.getStyleClass().add("peel-library-artist-name");
+
+        getChildren().add(label);
+
+        final Label search = new Label();
+        search.setGraphic(Jfx.icon(Icons.SEARCH_ICON));
+        search.getStyleClass().addAll("peel-library-artist-search");
+
+        // FIXME: exact match
+        addEventHandler(MouseEvent.MOUSE_RELEASED, e -> searchField.setText(artist.name()));
+
+        addEventHandler(MouseEvent.MOUSE_ENTERED, e -> getChildren().add(0, search));
+        addEventHandler(MouseEvent.MOUSE_EXITED, e -> getChildren().remove(search));
     }
-
-    static void addSpacing(final HBox hbox) {
-        final Region region = new Region();
-        HBox.setHgrow(region, Priority.ALWAYS);
-        hbox.getChildren().add(region);
-    }
-
-    static void addSpacing(final VBox vbox) {
-        final Region region = new Region();
-        VBox.setVgrow(region, Priority.ALWAYS);
-        vbox.getChildren().add(region);
-    }
-
-    static Button button(final String iconName, final String styleclass) {
-        final Button button = new Button();
-        button.setGraphic(icon(iconName));
-        button.getStyleClass().add(styleclass);
-        return button;
-    }
-
-    static Region icon(final String name) {
-        try (final InputStream is = Jfx.class.getClassLoader().getResourceAsStream("icons/" + name + ".svg")) {
-            return SvgParser.parse(is);
-        } catch (final IOException e) {
-            throw new IllegalArgumentException(e);
-        }
-    }
-
 }

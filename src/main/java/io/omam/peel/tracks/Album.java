@@ -28,35 +28,34 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-package io.omam.peel;
+package io.omam.peel.tracks;
 
-import javafx.animation.Animation;
-import javafx.animation.FadeTransition;
-import javafx.scene.Node;
-import javafx.util.Duration;
+import java.util.List;
 
-final class Fader {
+public final class Album {
 
-    private final Node node;
+    private final String artist;
 
-    private final FadeTransition transition;
+    private final String name;
 
-    Fader(final Node aNode) {
-        node = aNode;
-        transition = new FadeTransition(Duration.millis(500), node);
-        transition.setAutoReverse(true);
-        transition.setFromValue(1.0);
-        transition.setToValue(0.1);
-        transition.setCycleCount(Animation.INDEFINITE);
+    private final List<Track> tracks;
+
+    Album(final String anArtist, final String aName, final List<Track> someTracks) {
+        artist = anArtist;
+        name = aName;
+        tracks = someTracks;
     }
 
-    final void start() {
-        transition.playFromStart();
+    public final String artist() {
+        return artist;
     }
 
-    final void stop() {
-        transition.stop();
-        node.setOpacity(1.0);
+    public final String name() {
+        return name;
+    }
+
+    public final List<Track> tracks() {
+        return tracks;
     }
 
 }

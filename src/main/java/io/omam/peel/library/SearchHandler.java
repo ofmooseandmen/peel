@@ -28,34 +28,11 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-package io.omam.peel;
+package io.omam.peel.library;
 
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.atomic.AtomicInteger;
+interface SearchHandler {
 
-@SuppressWarnings("javadoc")
-final class PeelThreadFactory implements ThreadFactory {
+    void search(final SearchType searchType, final String text);
 
-    private static final AtomicInteger POOL_NUMBER = new AtomicInteger(1);
-
-    private final ThreadGroup group;
-
-    private final AtomicInteger threadNumber;
-
-    private final String namePrefix;
-
-    PeelThreadFactory(final String suffix) {
-        final SecurityManager s = System.getSecurityManager();
-        threadNumber = new AtomicInteger(1);
-        group = s != null ? s.getThreadGroup() : Thread.currentThread().getThreadGroup();
-        namePrefix = "peel-" + suffix + "-" + POOL_NUMBER.getAndIncrement() + "-thread-";
-    }
-
-    @Override
-    public final Thread newThread(final Runnable r) {
-        final Thread t = new Thread(group, r, namePrefix + threadNumber.getAndIncrement(), 0);
-        t.setDaemon(true);
-        t.setPriority(Thread.NORM_PRIORITY);
-        return t;
-    }
+    void searchArtists();
 }

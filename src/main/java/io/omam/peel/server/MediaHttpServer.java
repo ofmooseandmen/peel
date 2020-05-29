@@ -28,7 +28,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-package io.omam.peel;
+package io.omam.peel.server;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -48,8 +48,10 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 
+import io.omam.peel.core.PeelThreadFactory;
+
 @SuppressWarnings("javadoc")
-final class MediaHttpServer implements MediaServer {
+public final class MediaHttpServer implements MediaServer {
 
     private static final class Handler implements HttpHandler {
 
@@ -136,7 +138,7 @@ final class MediaHttpServer implements MediaServer {
         port = httpServer.getAddress().getPort();
     }
 
-    static MediaHttpServer start(final Path root, final int port) throws IOException {
+    public static MediaHttpServer start(final Path root, final int port) throws IOException {
         final InetSocketAddress addr = new InetSocketAddress(port);
         final HttpServer httpServer = HttpServer.create(addr, 0);
         httpServer.createContext("/", new Handler(root.toString())).setAuthenticator(null);
