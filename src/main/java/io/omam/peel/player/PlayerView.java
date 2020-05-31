@@ -259,17 +259,21 @@ final class PlayerView {
         });
     }
 
-    final void setQueue(final List<Track> tracks, final Optional<Track> current) {
+    final void setQueue(final List<Track> tracks, final Optional<Track> current, final boolean unsynch) {
         Platform.runLater(() -> {
             requesting.stop();
             enableControls();
             queue.getChildren().clear();
             final Collection<QueueTrackView> views = new ArrayList<>();
             for (int i = 0; i < tracks.size(); i++) {
-                views.add(new QueueTrackView(tracks.get(i), i % 2 == 0, ah));
+                views.add(new QueueTrackView(tracks.get(i), i, ah));
             }
             queue.getChildren().addAll(views);
             current.ifPresent(this::updatePast);
+            if (unsynch) {
+                connection.pseudoClassStateChanged(ERROR, true);
+                connection.setTooltip(new Tooltip("queue not synchronised with device"));
+            }
         });
     }
 

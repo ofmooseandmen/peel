@@ -187,8 +187,8 @@ public final class PlayerController
     }
 
     @Override
-    public final void removeFromQueue(final Track track) {
-        executeQueue(() -> connected.removeFromQueue(track));
+    public final void removeFromQueue(final int trackIndex) {
+        executeQueue(() -> connected.removeFromQueue(trackIndex));
     }
 
     @Override
@@ -299,7 +299,7 @@ public final class PlayerController
             }
             try {
                 final QueueState q = task.run();
-                view.setQueue(q.tracks, q.currentTrack);
+                view.setQueue(q.tracks, q.currentTrack, q.unsynch);
             } catch (final MediaRequestException e) {
                 view.setError(errToString(e.error()));
             } catch (final Exception e) {

@@ -51,11 +51,11 @@ final class QueueTrackView extends HBox {
 
     private final Track track;
 
-    QueueTrackView(final Track aTrack, final boolean odd, final ActionHandler ah) {
+    QueueTrackView(final Track aTrack, final int trackIndex, final ActionHandler ah) {
         track = aTrack;
         getStyleClass().add("peel-player-queue-track");
         setAlignment(Pos.CENTER_LEFT);
-        if (odd) {
+        if (trackIndex % 2 != 0) {
             pseudoClassStateChanged(ODD, true);
         }
         final VBox vbox = new VBox();
@@ -74,7 +74,7 @@ final class QueueTrackView extends HBox {
         play.setOnAction(e -> ah.play(track));
         getChildren().add(play);
         final Button remove = Jfx.button(REMOVE_ICON, "peel-player-queue-track-remove");
-        remove.setOnAction(e -> ah.removeFromQueue(track));
+        remove.setOnAction(e -> ah.removeFromQueue(trackIndex));
         getChildren().add(remove);
     }
 

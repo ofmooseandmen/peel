@@ -40,7 +40,7 @@ interface ActionHandler {
 
     void prev();
 
-    void removeFromQueue(final Track track);
+    void removeFromQueue(final int trackIndex);
 
     void requestConnection(final String deviceId);
 

@@ -41,9 +41,12 @@ final class QueueState {
 
     final Optional<Track> currentTrack;
 
-    QueueState(final List<Track> someTracks, final Optional<Track> aCurrentTrack) {
+    final boolean unsynch;
+
+    QueueState(final List<Track> someTracks, final Optional<Track> aCurrentTrack, final boolean isUnsynch) {
         tracks = someTracks;
         currentTrack = aCurrentTrack;
+        unsynch = isUnsynch;
     }
 
 }

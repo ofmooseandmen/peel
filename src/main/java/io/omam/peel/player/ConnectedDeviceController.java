@@ -32,9 +32,10 @@ package io.omam.peel.player;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
@@ -56,6 +57,13 @@ import io.omam.wire.media.MediaStatusListener;
 import io.omam.wire.media.QueueItem;
 
 final class ConnectedDeviceController implements MediaStatusListener, CastDeviceControllerListener {
+
+    @FunctionalInterface
+    private static interface TrackLoader {
+
+        void accept(final List<MediaInfo> medias) throws IOException, TimeoutException, MediaRequestException;
+
+    }
 
     private static final Logger LOGGER = Logger.getLogger(ConnectedDeviceController.class.getName());
 
@@ -102,13 +110,7 @@ final class ConnectedDeviceController implements MediaStatusListener, CastDevice
         if (playerState == PlayerState.PAUSED) {
             listeners.forEach(ConnectedDeviceListener::playbackPaused);
         } else if (playerState == PlayerState.PLAYING) {
-            final Optional<Track> currentTrack = mediaSession.currentTrack();
-            if (currentTrack.isPresent()) {
-                final Track t = currentTrack.get();
-                listeners.forEach(l -> l.newTrackPlaying(t));
-            } else {
-                listeners.forEach(l -> l.playbackError("No current track"));
-            }
+            mediaSession.currentTrack().ifPresent(t -> listeners.forEach(l -> l.newTrackPlaying(t)));
         } else if (playerState == PlayerState.IDLE && newStatus.idleReason().isPresent()) {
             final IdleReason idle = newStatus.idleReason().get();
             if (idle == IdleReason.CANCELLED) {
@@ -133,8 +135,7 @@ final class ConnectedDeviceController implements MediaStatusListener, CastDevice
         if (mediaSession.isQueueEmpty()) {
             return play(tracks);
         }
-        mediaController.appendToQueue(storeTracks(tracks));
-        return queuedTracks();
+        return queueTracks(tracks, mediaController::appendToQueue);
     }
 
     final String deviceId() {
@@ -163,8 +164,7 @@ final class ConnectedDeviceController implements MediaStatusListener, CastDevice
         if (mediaSession.playerState() != PlayerState.IDLE) {
             stopPlayback();
         }
-        mediaController.load(storeTracks(tracks));
-        return queuedTracks();
+        return queueTracks(tracks, mediaController::load);
     }
 
     final void play(final Track track) throws IOException, TimeoutException, MediaRequestException {
@@ -176,19 +176,19 @@ final class ConnectedDeviceController implements MediaStatusListener, CastDevice
         if (mediaSession.isQueueEmpty()) {
             return play(tracks);
         }
-        mediaController.insertInQueue(mediaSession.nextItemId(), storeTracks(tracks));
-        return queuedTracks();
+        return queueTracks(tracks, m -> mediaController.insertInQueue(mediaSession.nextItemId(), m));
     }
 
     final void prev() throws IOException, TimeoutException, MediaRequestException {
         mediaController.previous();
     }
 
-    final QueueState removeFromQueue(final Track track)
+    final QueueState removeFromQueue(final int trackIndex)
             throws IOException, TimeoutException, MediaRequestException {
-        final int id = mediaSession.remove(track);
-        mediaController.removeFromQueue(Collections.singletonList(id));
-        return queuedTracks();
+        final int id = mediaSession.itemId(trackIndex);
+        mediaController.removeFromQueue(List.of(id));
+        final List<QueueItem> items = mediaController.getQueueItems();
+        return mediaSession.synch(items);
     }
 
     final void removeListener(final ConnectedDeviceListener l) {
@@ -214,25 +214,25 @@ final class ConnectedDeviceController implements MediaStatusListener, CastDevice
         return playerState;
     }
 
-    private QueueState queuedTracks() throws IOException, TimeoutException, MediaRequestException {
-        final List<QueueItem> items = mediaController.getQueueItems();
-        final List<Track> tracks = mediaSession.withQueueItems(items);
-        return new QueueState(tracks, mediaSession.currentTrack());
-    }
-
-    private List<MediaInfo> storeTracks(final List<Track> tracks) {
-        final List<MediaInfo> l = new ArrayList<>();
+    private QueueState queueTracks(final List<Track> tracks, final TrackLoader loader)
+            throws IOException, TimeoutException, MediaRequestException {
+        final List<MediaInfo> medias = new ArrayList<>();
+        final Map<String, Track> mapped = new HashMap<>();
         for (final Track track : tracks) {
             try {
+                final String uuid = UUID.randomUUID().toString();
+                final Object customData = Map.of(MediaSession.UUID_KEY, uuid);
                 final String contentId = urlResolver.resolveUrl(track.path());
-                final MediaInfo media = MediaInfo.fromDataStream(contentId);
-                l.add(media);
-                mediaSession.add(contentId, track);
+                final MediaInfo media = MediaInfo.fromDataStream(contentId, customData);
+                medias.add(media);
+                mapped.put(uuid, track);
             } catch (final IOException e) {
                 LOGGER.log(Level.WARNING, e, () -> "Ignoring track " + track.name());
             }
         }
-        return l;
+        loader.accept(medias);
+        final List<QueueItem> items = mediaController.getQueueItems();
+        return mediaSession.insertAll(items, mapped);
     }
 
 }

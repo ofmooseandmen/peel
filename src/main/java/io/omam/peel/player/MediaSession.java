@@ -32,8 +32,9 @@ package io.omam.peel.player;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import io.omam.peel.tracks.Track;
 import io.omam.wire.media.MediaInfo;
@@ -45,24 +46,23 @@ final class MediaSession {
 
     private static class QueueTrack {
 
-        final String contentId;
+        final String uuid;
 
         final Track track;
 
-        QueueItem item;
+        final QueueItem item;
 
-        QueueTrack(final String aContentId, final Track aTrack) {
-            contentId = aContentId;
+        QueueTrack(final String anUuid, final Track aTrack, final QueueItem anItem) {
+            uuid = anUuid;
             track = aTrack;
-        }
-
-        final void associate(final QueueItem anItem) {
             item = anItem;
         }
 
     }
 
-    private final List<MediaSession.QueueTrack> tracks;
+    static final String UUID_KEY = "UUID";
+
+    private final List<QueueTrack> queue;
 
     private PlayerState playerState;
 
@@ -71,21 +71,51 @@ final class MediaSession {
     private Optional<Integer> currentItemId;
 
     MediaSession() {
-        tracks = new ArrayList<>();
+        queue = new ArrayList<>();
         playerState = PlayerState.IDLE;
         currentMedia = null;
-    }
-
-    final void add(final String contentId, final Track track) {
-        tracks.add(new QueueTrack(contentId, track));
     }
 
     final Optional<Track> currentTrack() {
         return Optional.ofNullable(currentMedia).flatMap(this::track).map(qt -> qt.track);
     }
 
+    final QueueState insertAll(final List<QueueItem> items, final Map<String, Track> tracks) {
+        boolean unsynch = false;
+        for (int i = 0; i < items.size() && !unsynch; i++) {
+            final QueueItem item = items.get(i);
+            if (item.media().customData().isEmpty()) {
+                unsynch = true;
+            } else {
+                final Optional<String> optUuid = uuid(item.media());
+                if (optUuid.isEmpty()) {
+                    unsynch = true;
+                } else {
+                    final String uuid = optUuid.get();
+                    if (tracks.containsKey(uuid) && queue.stream().noneMatch(qt -> qt.uuid.equals(uuid))) {
+                        final QueueTrack qt = new QueueTrack(uuid, tracks.get(uuid), item);
+                        try {
+                            queue.add(i, qt);
+                        } catch (final IndexOutOfBoundsException e) {
+                            unsynch = true;
+                        }
+                    }
+                }
+            }
+        }
+        return state(unsynch);
+    }
+
     final boolean isQueueEmpty() {
-        return tracks.isEmpty();
+        return queue.isEmpty();
+    }
+
+    final int itemId(final int trackIndex) {
+        try {
+            return queue.get(trackIndex).item.itemId();
+        } catch (final IndexOutOfBoundsException e) {
+            return -1;
+        }
     }
 
     final int jumpTo(final Track track) {
@@ -95,9 +125,9 @@ final class MediaSession {
 
         final int curId = currentItemId.get();
         int currentIndex = -1;
-        for (int i = 0; i < tracks.size(); i++) {
-            final MediaSession.QueueTrack qt = tracks.get(i);
-            if (qt.item != null && qt.item.itemId() == curId) {
+        for (int i = 0; i < queue.size(); i++) {
+            final MediaSession.QueueTrack qt = queue.get(i);
+            if (qt.item.itemId() == curId) {
                 currentIndex = i;
                 break;
             }
@@ -107,8 +137,8 @@ final class MediaSession {
         }
 
         int jumpIndex = -1;
-        for (int i = 0; i < tracks.size(); i++) {
-            if (tracks.get(i).track == track) {
+        for (int i = 0; i < queue.size(); i++) {
+            if (queue.get(i).track == track) {
                 jumpIndex = i;
                 break;
             }
@@ -125,12 +155,8 @@ final class MediaSession {
             return -1;
         }
         final int current = currentItemId.get();
-        final Optional<QueueItem> next = tracks
-            .stream()
-            .dropWhile(i -> i.item != null && i.item.itemId() != current)
-            .skip(1)
-            .findFirst()
-            .map(qt -> qt.item);
+        final Optional<QueueItem> next =
+                queue.stream().dropWhile(i -> i.item.itemId() != current).skip(1).findFirst().map(qt -> qt.item);
         return next.map(QueueItem::itemId).orElse(-1);
     }
 
@@ -138,20 +164,8 @@ final class MediaSession {
         return playerState;
     }
 
-    final int remove(final Track track) {
-        final int id = tracks
-            .stream()
-            .filter(qt -> qt.track == track)
-            .findFirst()
-            .flatMap(qt -> Optional.ofNullable(qt.item))
-            .map(QueueItem::itemId)
-            .orElse(-1);
-        tracks.removeIf(qt -> Objects.equals(qt.track, track));
-        return id;
-    }
-
     final void reset() {
-        tracks.clear();
+        queue.clear();
         playerState = PlayerState.IDLE;
         currentMedia = null;
     }
@@ -160,9 +174,15 @@ final class MediaSession {
         playerState = state;
     }
 
-    final Optional<MediaSession.QueueTrack> track(final MediaInfo media) {
-        final String contentId = media.contentId();
-        return tracks.stream().filter(qt -> qt.contentId.equals(contentId)).findFirst();
+    final QueueState synch(final List<QueueItem> items) {
+        final List<String> uuids = items
+            .stream()
+            .map(i -> uuid(i.media()))
+            .filter(Optional::isPresent)
+            .map(Optional::get)
+            .collect(Collectors.toList());
+        queue.removeIf(qt -> !uuids.contains(qt.uuid));
+        return state(false);
     }
 
     final void update(final MediaStatus newStatus) {
@@ -173,15 +193,22 @@ final class MediaSession {
         playerState = newStatus.playerState();
     }
 
-    final List<Track> withQueueItems(final List<QueueItem> queueItems) {
-        final List<Track> result = new ArrayList<>();
-        for (final QueueItem qi : queueItems) {
-            track(qi.media()).ifPresent(qt -> {
-                qt.associate(qi);
-                result.add(qt.track);
-            });
+    private QueueState state(final boolean unsynch) {
+        return new QueueState(queue.stream().map(qt -> qt.track).collect(Collectors.toList()), currentTrack(),
+                              unsynch);
+    }
+
+    private Optional<QueueTrack> track(final MediaInfo media) {
+        return uuid(media).flatMap(u -> queue.stream().filter(qt -> qt.uuid.equals(u)).findFirst());
+    }
+
+    @SuppressWarnings("unchecked")
+    private Optional<String> uuid(final MediaInfo media) {
+        try {
+            return media.customData().flatMap(d -> Optional.ofNullable(((Map<String, String>) d).get(UUID_KEY)));
+        } catch (final ClassCastException e) {
+            return Optional.empty();
         }
-        return result;
     }
 
 }
