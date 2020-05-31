@@ -179,11 +179,6 @@ final class PlayerView {
                 }
             });
             devices.getItems().add(mi);
-            /* 2 menu items = title + one device -> connect to the device. */
-            if (devices.getItems().size() == 2) {
-                mi.setSelected(true);
-                mi.fire();
-            }
         });
     }
 
@@ -191,9 +186,15 @@ final class PlayerView {
         Platform.runLater(() -> resetPlayback());
     }
 
-    final void deviceConnected() {
+    final void deviceConnected(final String deviceId) {
         Platform.runLater(() -> {
             clearError();
+            devices
+                .getItems()
+                .stream()
+                .filter(mi -> deviceId.equals(mi.getUserData()))
+                .findFirst()
+                .ifPresent(mi -> ((CheckMenuItem) mi).setSelected(true));
             connection.setGraphic(Jfx.icon(CAST_CONNECTED_ICON));
         });
     }

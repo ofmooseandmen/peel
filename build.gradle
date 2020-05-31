@@ -1,6 +1,7 @@
 plugins {
     id 'application'
     id 'base'
+    id 'com.github.johnrengelman.shadow' version '5.2.0'
     id 'eclipse'
     id 'org.openjfx.javafxplugin' version '0.0.8'
 }
@@ -16,6 +17,7 @@ targetCompatibility = JavaVersion.VERSION_11
 
 dependencies {
     implementation(
+        'com.github.ofmooseandmen.wire:wire-app:2020.05-SNAPSHOT',
         'com.github.ofmooseandmen.wire:wire-device:2020.05-SNAPSHOT',
         'com.github.ofmooseandmen.wire:wire-discovery:2020.05-SNAPSHOT',
         'com.github.ofmooseandmen.wire:wire-media:2020.05-SNAPSHOT'

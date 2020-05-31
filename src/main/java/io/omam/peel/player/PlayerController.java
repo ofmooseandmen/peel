@@ -107,6 +107,9 @@ public final class PlayerController
             final String deviceId = controller.deviceId();
             controllers.put(deviceId, controller);
             view.addDevice(deviceId, controller.deviceName());
+            if (controllers.size() == 1 && connected == null) {
+                internalRequestConnection(deviceId);
+            }
         });
     }
 
@@ -193,32 +196,7 @@ public final class PlayerController
 
     @Override
     public final void requestConnection(final String deviceId) {
-        executor.execute(() -> {
-            view.waiting();
-            if (connected != null) {
-                view.setError(connected.deviceName() + " already connected");
-                return;
-            }
-            final CastDeviceController controller = controllers.get(deviceId);
-            if (controller == null) {
-                view.deviceDisconnected(deviceId, "Unknown device: " + deviceId);
-                return;
-            }
-
-            try {
-                controller.connect();
-                final MediaController mediaController =
-                        controller.launchApp(MediaController.APP_ID, MediaController::newInstance);
-                connected = new ConnectedDeviceController(controller, mediaController, urlResolver);
-                connected.addListener(this);
-                view.deviceConnected();
-            } catch (final IOException | TimeoutException e) {
-                controller.disconnect();
-                connected = null;
-                view.deviceDisconnected(deviceId, e.getMessage());
-            }
-
-        });
+        executor.execute(() -> internalRequestConnection(deviceId));
     }
 
     @Override
@@ -305,6 +283,35 @@ public final class PlayerController
             } catch (final Exception e) {
                 view.setError(PLAYBACK_ERROR + e.getMessage());
             }
+        });
+    }
+
+    private void internalRequestConnection(final String deviceId) {
+        executor.execute(() -> {
+            view.waiting();
+            if (connected != null) {
+                view.setError(connected.deviceName() + " already connected");
+                return;
+            }
+            final CastDeviceController controller = controllers.get(deviceId);
+            if (controller == null) {
+                view.deviceDisconnected(deviceId, "Unknown device: " + deviceId);
+                return;
+            }
+
+            try {
+                controller.connect();
+                final MediaController mediaController =
+                        controller.launchApp(MediaController.APP_ID, MediaController::newInstance);
+                connected = new ConnectedDeviceController(controller, mediaController, urlResolver);
+                connected.addListener(this);
+                view.deviceConnected(deviceId);
+            } catch (final IOException | TimeoutException e) {
+                controller.disconnect();
+                connected = null;
+                view.deviceDisconnected(deviceId, e.getMessage());
+            }
+
         });
     }
 
