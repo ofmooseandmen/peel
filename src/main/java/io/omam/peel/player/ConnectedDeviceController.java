@@ -116,6 +116,7 @@ final class ConnectedDeviceController implements MediaStatusListener, CastDevice
             if (idle == IdleReason.CANCELLED) {
                 listeners.forEach(ConnectedDeviceListener::playbackStopped);
             } else if (idle == IdleReason.FINISHED) {
+                mediaSession.reset();
                 listeners.forEach(ConnectedDeviceListener::playbackFinished);
             }
         }

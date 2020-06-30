@@ -44,7 +44,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-@SuppressWarnings("javadoc")
 public final class Tracks {
 
     private static final Comparator<? super Track> TRACK_COMPARATOR = Comparator.comparing(t -> t.name());

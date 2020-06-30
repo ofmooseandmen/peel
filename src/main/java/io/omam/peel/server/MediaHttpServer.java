@@ -36,11 +36,11 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
@@ -48,12 +48,16 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 
+import io.mikael.urlbuilder.util.Decoder;
+import io.mikael.urlbuilder.util.Encoder;
 import io.omam.peel.core.PeelThreadFactory;
 
 @SuppressWarnings("javadoc")
 public final class MediaHttpServer implements MediaServer {
 
     private static final class Handler implements HttpHandler {
+
+        private static final Decoder DECODER = new Decoder(StandardCharsets.UTF_8);
 
         private final String root;
 
@@ -69,11 +73,11 @@ public final class MediaHttpServer implements MediaServer {
                 if (rPath == null) {
                     sendError(400, "Missing path", exchange);
                 } else {
-                    final Optional<String> decoded = decodePath(rPath);
+                    final String decoded = DECODER.decodePath(rPath);
                     if (decoded.isEmpty()) {
                         sendError(404, "Invalid file", exchange);
                     } else {
-                        final Path path = Paths.get(root, decoded.get());
+                        final Path path = Paths.get(root, decoded);
                         final File file = path.toFile();
                         if (!file.exists() || file.isDirectory()) {
                             sendError(404, "File not found", exchange);
@@ -118,8 +122,7 @@ public final class MediaHttpServer implements MediaServer {
 
     }
 
-    private static final String SAFE_CHARS =
-            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~!$'()*,;&=+@:/";
+    private static final Encoder ENCODER = new Encoder(StandardCharsets.UTF_8);
 
     private static final Logger LOGGER = Logger.getLogger(MediaHttpServer.class.getName());
 
@@ -149,55 +152,9 @@ public final class MediaHttpServer implements MediaServer {
         return new MediaHttpServer(root, localIp, httpServer);
     }
 
-    private static Optional<String> decodePath(final String path) {
-        final StringBuilder decoded = new StringBuilder();
-        int i = 0;
-        final int length = path.length();
-        while (i < length) {
-            final char ch = path.charAt(i);
-            if (ch == '%') {
-                /* next two characters are the hexadecimal value of the character. */
-                if (i + 3 >= length) {
-                    return Optional.empty();
-                }
-                final int codePoint = Integer.parseInt(path, i + 1, i + 3, 16);
-                try {
-                    final char[] chars = Character.toChars(codePoint);
-                    decoded.append(chars);
-                    i = i + 3;
-                } catch (final IllegalArgumentException e) {
-                    return Optional.empty();
-                }
-            } else {
-                decoded.append(ch);
-                i++;
-            }
-        }
-        return Optional.of(decoded.toString());
-    }
-
-    private static String encodePath(final String path) {
-        final StringBuilder encoded = new StringBuilder();
-        for (int i = 0; i < path.length(); i++) {
-            final char ch = path.charAt(i);
-            if (SAFE_CHARS.indexOf(ch) == -1) {
-                encoded.append('%');
-                encoded.append(toHex(ch / 16));
-                encoded.append(toHex(ch % 16));
-            } else {
-                encoded.append(ch);
-            }
-        }
-        return encoded.toString();
-    }
-
-    private static char toHex(final int ch) {
-        return (char) (ch < 10 ? '0' + ch : 'A' + ch - 10);
-    }
-
     @Override
     public final String resolveUrl(final Path localPath) {
-        final String encoded = encodePath(root.relativize(localPath).toString().replace('\\', '/'));
+        final String encoded = ENCODER.encodePath(root.relativize(localPath).toString().replace('\\', '/'));
         return "http://" + ip + ":" + port + "/" + encoded;
     }
 
