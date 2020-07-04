@@ -176,21 +176,12 @@
 }
 
 .peel-library-artist {
-    -fx-padding: 0.5em 0px 0.5em 1em;
+    -fx-padding: 0.5em 0 0.5em 1em;
 }
 
 .peel-library-artist-name {
     -fx-text-fill: grey;
     -fx-font-size: 1.166667em;
-}
-
-.peel-library-artist-search {
-    -fx-padding: 0 0.5em 0 0;
-}
-
-.peel-library-artist-search .svg-path {
-    -fx-scale-x: 0.75;
-    -fx-scale-y: 0.75;
 }
 
 .peel-library-artist:hover .peel-library-artist-name { 

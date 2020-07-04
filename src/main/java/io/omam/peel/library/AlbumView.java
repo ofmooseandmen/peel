@@ -70,6 +70,14 @@ final class AlbumView extends VBox {
         final HBox controls = new HBox();
         controls.getStyleClass().add("peel-library-album-controls");
 
+        final ToggleButton toggle = new ToggleButton();
+        toggle.setGraphic(Jfx.icon(Icons.LIST_ICON));
+        toggle.getStyleClass().add("peel-library-album-toggle");
+
+        controls.getChildren().add(toggle);
+
+        Jfx.addSpacing(controls);
+
         final Button playNow = Jfx.button(Icons.PLAY_NOW_ICON, "peel-library-play-now");
         playNow.setText("now");
         playNow.setOnAction(e -> player.playTracks(trackData()));
@@ -84,14 +92,6 @@ final class AlbumView extends VBox {
         playLast.setText("last");
         playLast.setOnAction(e -> player.queueTracksLast(trackData()));
         controls.getChildren().add(playLast);
-
-        Jfx.addSpacing(controls);
-
-        final ToggleButton toggle = new ToggleButton();
-        toggle.setGraphic(Jfx.icon(Icons.LIST_ICON));
-        toggle.getStyleClass().add("peel-library-album-toggle");
-
-        controls.getChildren().add(toggle);
 
         getChildren().add(controls);
 

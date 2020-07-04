@@ -30,7 +30,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 package io.omam.peel.library;
 
-import io.omam.peel.jfx.Jfx;
 import io.omam.peel.tracks.Artist;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
@@ -47,14 +46,8 @@ final class ArtistView extends HBox {
 
         getChildren().add(label);
 
-        final Label search = new Label();
-        search.setGraphic(Jfx.icon(Icons.SEARCH_ICON));
-        search.getStyleClass().addAll("peel-library-artist-search");
-
         // FIXME: exact match
         addEventHandler(MouseEvent.MOUSE_RELEASED, e -> searchField.setText(artist.name()));
-
-        addEventHandler(MouseEvent.MOUSE_ENTERED, e -> getChildren().add(0, search));
-        addEventHandler(MouseEvent.MOUSE_EXITED, e -> getChildren().remove(search));
     }
+
 }
