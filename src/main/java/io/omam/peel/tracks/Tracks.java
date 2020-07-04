@@ -41,18 +41,22 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public final class Tracks {
 
-    private static final Comparator<? super Track> TRACK_COMPARATOR = Comparator.comparing(t -> t.name());
+    private static final Comparator<? super Track> TRACK_COMPARATOR = Comparator.comparing(Track::name);
 
     private static final Comparator<? super Artist> ARTIST_COMPARATOR = Comparator
-        .<Artist, String> comparing(a -> a.firstChar(), String.CASE_INSENSITIVE_ORDER)
-        .thenComparing(a -> a.name());
+        .<Artist, String> comparing(Artist::firstChar, String.CASE_INSENSITIVE_ORDER)
+        .thenComparing(Artist::name);
 
     private static final String IGNORE = "the ";
+
+    private static final Logger LOGGER = Logger.getLogger(Tracks.class.getName());
 
     private Tracks() {
         // empty.
@@ -76,8 +80,7 @@ public final class Tracks {
                     res.add(artist(artist));
                 }
             } catch (final IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
+                LOGGER.log(Level.WARNING, e.getMessage(), e);
             }
             res.sort(ARTIST_COMPARATOR);
             listener.found(res);
@@ -108,13 +111,11 @@ public final class Tracks {
                             listener.found(new Album(artistName, albumName, tracks));
                         }
                     } catch (final IOException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
+                        LOGGER.log(Level.WARNING, e.getMessage(), e);
                     }
                 }
             } catch (final IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
+                LOGGER.log(Level.WARNING, e.getMessage(), e);
             }
             listener.searchOver();
         };
@@ -145,13 +146,11 @@ public final class Tracks {
                             }
                         }
                     } catch (final IOException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
+                        LOGGER.log(Level.WARNING, e.getMessage(), e);
                     }
                 }
             } catch (final IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
+                LOGGER.log(Level.WARNING, e.getMessage(), e);
             }
             listener.searchOver();
         };
