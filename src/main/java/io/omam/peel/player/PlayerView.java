@@ -225,7 +225,7 @@ final class PlayerView {
             requesting.stop();
             playPause.setGraphic(Jfx.icon(PLAY_ICON));
             currentTrack.reset();
-            queue.getChildren().clear();
+            queue.getChildren().stream().map(c -> (QueueTrackView) c).forEach(QueueTrackView::unsetPast);
         });
     }
 

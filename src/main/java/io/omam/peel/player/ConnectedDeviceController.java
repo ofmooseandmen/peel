@@ -94,17 +94,17 @@ final class ConnectedDeviceController implements MediaStatusListener, CastDevice
     }
 
     @Override
-    public final void deviceStatusUpdated(final CastDeviceStatus status) {
+    public final void deviceStatusUpdated(final CastDeviceStatus status, final boolean timeout) {
         // ignore.
     }
 
     @Override
-    public void mediaErrorReceived(final Error error) {
+    public void mediaErrorReceived(final Error error, final boolean timeout) {
         listeners.forEach(l -> l.playbackError(error));
     }
 
     @Override
-    public final void mediaStatusUpdated(final MediaStatus newStatus) {
+    public final void mediaStatusUpdated(final MediaStatus newStatus, final boolean timeout) {
         mediaSession.update(newStatus);
         final PlayerState playerState = mediaSession.playerState();
         if (playerState == PlayerState.PAUSED) {
@@ -112,8 +112,13 @@ final class ConnectedDeviceController implements MediaStatusListener, CastDevice
         } else if (playerState == PlayerState.PLAYING) {
             mediaSession.currentTrack().ifPresent(t -> listeners.forEach(l -> l.newTrackPlaying(t)));
         } else if (playerState == PlayerState.IDLE && newStatus.idleReason().isPresent()) {
+            System.err.println(newStatus.idleReason());
             final IdleReason idle = newStatus.idleReason().get();
+            // FIXME FINISHED when current song is done playing, need to trigger playbackStopped when FINISHED and
+            // last track has been played...
+            // FIXME handle IDLE = ERROR
             if (idle == IdleReason.CANCELLED) {
+                /* another application stopped the playback. */
                 listeners.forEach(ConnectedDeviceListener::playbackStopped);
             } else if (idle == IdleReason.FINISHED) {
                 mediaSession.reset();
@@ -136,6 +141,7 @@ final class ConnectedDeviceController implements MediaStatusListener, CastDevice
         if (mediaSession.isQueueEmpty()) {
             return play(tracks);
         }
+        // FIXME: 4 seconds is not enough
         return queueTracks(tracks, mediaController::appendToQueue);
     }
 
@@ -165,6 +171,7 @@ final class ConnectedDeviceController implements MediaStatusListener, CastDevice
         if (mediaSession.playerState() != PlayerState.IDLE) {
             stopPlayback();
         }
+        // FIXME: 4 seconds is not enough
         return queueTracks(tracks, mediaController::load);
     }
 
@@ -232,6 +239,7 @@ final class ConnectedDeviceController implements MediaStatusListener, CastDevice
             }
         }
         loader.accept(medias);
+        // FIXME load can timeout but device has accepted the tracks; should schedule retry to get the queue items.
         final List<QueueItem> items = mediaController.getQueueItems();
         return mediaSession.insertAll(items, mapped);
     }
